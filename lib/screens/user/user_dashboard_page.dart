@@ -1,241 +1,214 @@
-import 'package:blood_bank_app/screens/user/request_donors_page.dart';
 import 'package:flutter/material.dart';
-import 'package:blood_bank_app/screens/user/blood_donation_page.dart'; // Import the new donation page
+import 'package:blood_bank_app/screens/user/drawer_page.dart';
+import 'package:blood_bank_app/screens/user/request_donors_page.dart';
+import 'package:blood_bank_app/screens/user/blood_donation_page.dart';
 
-class UserDashboardPage extends StatelessWidget {
+class UserDashboardPage extends StatefulWidget {
+  final String fullName;
   final int age;
   final String bloodGroup;
 
   const UserDashboardPage({
     super.key,
+    required this.fullName,
     required this.age,
     required this.bloodGroup,
   });
 
   @override
+  State<UserDashboardPage> createState() => _UserDashboardPageState();
+}
+
+class _UserDashboardPageState extends State<UserDashboardPage> {
+  // Use a GlobalKey to safely access the ScaffoldState and open the drawer
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
+  @override
   Widget build(BuildContext context) {
-    bool canDonate = age >= 18;
+    final bool canDonate = widget.age >= 18;
 
     return Scaffold(
+      key: _scaffoldKey, // Assign the key here
       backgroundColor: Colors.grey[200],
-      body: SingleChildScrollView(
+      drawer: DrawerPage(
+        fullName: widget.fullName,
+        age: widget.age,
+        bloodGroup: widget.bloodGroup,
+      ),
+      body: SafeArea(
         child: Column(
           children: [
-            // Top red curved section
+            // Header with menu button that opens drawer
             Container(
+              height: 160,
               width: double.infinity,
-              height: 200,
               decoration: const BoxDecoration(
                 color: Color(0xFFF94747),
                 borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(80),
-                  bottomRight: Radius.circular(80),
+                  bottomLeft: Radius.circular(40),
+                  bottomRight: Radius.circular(40),
                 ),
               ),
-              child: Stack(
-                children: [
-                  Positioned(
-                    top: 50,
-                    left: 25,
-                    child: Row(
-                      children: [
-                        // Hamburger Menu Icon
-                        IconButton(
-                          icon: const Icon(
-                            Icons.menu,
-                            color: Colors.white,
-                            size: 30,
-                          ),
-                          onPressed: () {
-                            // TODO: Implement drawer or menu logic
-                          },
-                        ),
-                        const SizedBox(width: 20),
-                        // "Hello Zoharin" text
-                        const Text(
-                          "Hello Zoharin",
-                          style: TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 30),
-            // Information Cards
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 25.0),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // Blood Group Card
-                  Expanded(
-                    child: Container(
-                      height: 200,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Text(
-                            "Your Blood Group",
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.red,
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          Stack(
-                            alignment: Alignment.center,
-                            children: [
-                              Container(
-                                width: 100,
-                                height: 100,
-                                decoration: const BoxDecoration(
-                                  color: Colors.red,
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                              Container(
-                                width: 80,
-                                height: 80,
-                                decoration: const BoxDecoration(
-                                  color: Colors.white,
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                              Text(
-                                bloodGroup,
-                                style: const TextStyle(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.red,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
+                  // Menu Icon wired to the GlobalKey
+                  IconButton(
+                    icon: const Icon(Icons.menu, color: Colors.white, size: 30),
+                    onPressed: () {
+                      _scaffoldKey.currentState?.openDrawer();
+                    },
                   ),
-                  const SizedBox(width: 20),
-                  // Donor Status Card
-                  Expanded(
-                    child: Container(
-                      height: 200,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Text(
-                            "Donor Status",
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.red,
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          // Conditional icon based on age
-                          Container(
-                            width: 100,
-                            height: 100,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: canDonate ? Colors.green : Colors.red,
-                                width: 3,
-                              ),
-                            ),
-                            child: Icon(
-                              canDonate ? Icons.check : Icons.close,
-                              color: canDonate ? Colors.green : Colors.red,
-                              size: 60,
-                            ),
-                          ),
-                          const SizedBox(height: 5),
-                          Text(
-                            canDonate ? "You can Donate!" : "Not eligible to donate",
-                            style: TextStyle(
-                              color: canDonate ? Colors.green : Colors.red,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
+                  const SizedBox(width: 12),
+                  Text(
+                    "Hello ${widget.fullName.split(' ').first}",
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 26,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 40),
-            // Request Donors Button
+
+            const SizedBox(height: 20),
+
+            // Info cards
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 25.0),
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const RequestDonorsPage(), // Navigate to the RequestDonorsPage
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: _infoCard(
+                      title: "Blood Group",
+                      content: widget.bloodGroup,
+                      color: Colors.red,
+                      isBloodGroup: true,
                     ),
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
-                  foregroundColor: Colors.white,
-                  minimumSize: const Size(double.infinity, 50),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
                   ),
-                ),
-                child: const Text(
-                  "Request Donors",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _infoCard(
+                      title: "Donor Status",
+                      content: canDonate ? "Approved" : "Not eligible",
+                      color: canDonate ? Colors.green : Colors.red,
+                      isDonorStatus: true,
+                      canDonate: canDonate,
+                    ),
+                  ),
+                ],
               ),
             ),
+
             const SizedBox(height: 20),
-            // Donate Blood Button
+
+            // Buttons
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 25.0),
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const BloodDonationPage(), // Navigate to the new BloodDonationPage
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: Column(
+                children: [
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                      minimumSize: const Size.fromHeight(50),
                     ),
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
-                  foregroundColor: Colors.white,
-                  minimumSize: const Size(double.infinity, 50),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const RequestDonorsPage(),
+                        ),
+                      );
+                    },
+                    child: const Text('Request Donors'),
                   ),
-                ),
-                child: const Text(
-                  "Donate Blood",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
+                  const SizedBox(height: 12),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                      minimumSize: const Size.fromHeight(50),
+                    ),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const BloodDonationPage(),
+                        ),
+                      );
+                    },
+                    child: const Text('Donate Blood'),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 20),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _infoCard({
+    required String title,
+    required String content,
+    required Color color,
+    bool isBloodGroup = false,
+    bool isDonorStatus = false,
+    bool canDonate = false,
+  }) {
+    return Container(
+      height: 170,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Text(title,
+              style: TextStyle(
+                  fontWeight: FontWeight.bold, fontSize: 16, color: color)),
+          const SizedBox(height: 10),
+          if (isBloodGroup)
+            // Blood Drop Icon
+            Stack(
+              alignment: Alignment.center,
+              children: [
+                const Icon(Icons.favorite, size: 80, color: Colors.red),
+                Text(
+                  content,
+                  style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white),
+                ),
+              ],
+            ),
+          if (isDonorStatus)
+            // Donor Status Icon
+            Column(
+              children: [
+                Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: color, width: 2),
+                  ),
+                  child: Icon(
+                    canDonate ? Icons.check : Icons.close,
+                    color: color,
+                    size: 40,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(content,
+                    style: TextStyle(
+                        fontSize: 14, fontWeight: FontWeight.bold, color: color)),
+              ],
+            ),
+        ],
       ),
     );
   }

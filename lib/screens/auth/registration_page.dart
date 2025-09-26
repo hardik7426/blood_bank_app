@@ -159,14 +159,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
                     value: _selectedBloodGroup,
                     decoration: _inputDecoration("Blood Group"),
                     items: [
-                      'A+',
-                      'A-',
-                      'B+',
-                      'B-',
-                      'AB+',
-                      'AB-',
-                      'O+',
-                      'O-'
+                      'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'
                     ].map((bg) {
                       return DropdownMenuItem(
                         value: bg,

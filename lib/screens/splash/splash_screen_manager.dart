@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:blood_bank_app/screens/splash/splash_screen.dart';
 import 'package:blood_bank_app/screens/splash/splash_screen1.dart';
 import 'package:blood_bank_app/screens/splash/splash_screen2.dart';
-import 'package:blood_bank_app/screens/auth/login_page.dart'; // Import the new login page
+import 'package:blood_bank_app/screens/auth/login_page.dart';
 
 class SplashScreenManager extends StatefulWidget {
   const SplashScreenManager({super.key});
@@ -31,12 +31,18 @@ class _SplashScreenManagerState extends State<SplashScreenManager> {
     super.dispose();
   }
 
+  void _navigateToLogin() {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => const LoginPage()),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Stack(
         children: [
-          // PageView to hold the splash screens
           PageView(
             controller: _pageController,
             children: const [
@@ -45,7 +51,6 @@ class _SplashScreenManagerState extends State<SplashScreenManager> {
               SplashScreen2(),
             ],
           ),
-          // Navigation arrows at the bottom
           Align(
             alignment: Alignment.bottomCenter,
             child: Padding(
@@ -55,7 +60,7 @@ class _SplashScreenManagerState extends State<SplashScreenManager> {
                 children: [
                   // Back arrow
                   IconButton(
-                    icon: Icon(Icons.arrow_back_ios, color: Colors.white, size: 30),
+                    icon: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 30),
                     onPressed: _currentPageIndex > 0
                         ? () {
                             _pageController.previousPage(
@@ -63,11 +68,11 @@ class _SplashScreenManagerState extends State<SplashScreenManager> {
                               curve: Curves.easeIn,
                             );
                           }
-                        : null, // Disable the back button on the first page
+                        : null,
                   ),
                   // Forward arrow
                   IconButton(
-                    icon: Icon(Icons.arrow_forward_ios, color: Colors.white, size: 30),
+                    icon: const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 30),
                     onPressed: () {
                       if (_currentPageIndex < 2) {
                         _pageController.nextPage(
@@ -75,11 +80,7 @@ class _SplashScreenManagerState extends State<SplashScreenManager> {
                           curve: Curves.easeIn,
                         );
                       } else {
-                        // Navigate to the Login page after the last splash screen
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(builder: (context) => const LoginPage()),
-                        );
+                        _navigateToLogin(); // Go to login after last splash screen
                       }
                     },
                   ),

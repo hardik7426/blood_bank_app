@@ -1,6 +1,7 @@
+import 'package:blood_bank_app/screens/auth/checkup_page.dart';
 import 'package:blood_bank_app/screens/auth/registration_page.dart';
 import 'package:flutter/material.dart';
-import 'package:blood_bank_app/screens/auth/checkup_page.dart'; // Import the new CheckupPage
+// import 'package:blood_bank_app/screens/user/checkup_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -84,39 +85,14 @@ class _LoginPageState extends State<LoginPage> {
                 children: [
                   TextField(
                     controller: _emailController,
-                    decoration: InputDecoration(
-                      hintText: "Email",
-                      filled: true,
-                      fillColor: Colors.white,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide.none,
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: const BorderSide(color: Colors.red, width: 2),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
-                    ),
+                    decoration: _inputDecoration("Email"),
                   ),
                   const SizedBox(height: 20),
                   TextField(
                     controller: _passwordController,
                     obscureText: true,
-                    decoration: InputDecoration(
-                      hintText: "Password",
-                      filled: true,
-                      fillColor: Colors.white,
+                    decoration: _inputDecoration("Password").copyWith(
                       suffixIcon: const Icon(Icons.visibility_off, color: Colors.grey),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide.none,
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: const BorderSide(color: Colors.red, width: 2),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
                     ),
                   ),
                 ],
@@ -179,6 +155,7 @@ class _LoginPageState extends State<LoginPage> {
                 ),
                 TextButton(
                   onPressed: () {
+                    // Navigate to RegistrationPage
                     Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -200,6 +177,23 @@ class _LoginPageState extends State<LoginPage> {
           ],
         ),
       ),
+    );
+  }
+
+  InputDecoration _inputDecoration(String hint) {
+    return InputDecoration(
+      hintText: hint,
+      filled: true,
+      fillColor: Colors.white,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: BorderSide.none,
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(color: Colors.red, width: 2),
+      ),
+      contentPadding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
     );
   }
 }

@@ -39,7 +39,7 @@ class _BloodDonationPageState extends State<BloodDonationPage> {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            // Top red curved section with title and icon
+            // Header
             Container(
               width: double.infinity,
               height: 250,
@@ -64,7 +64,7 @@ class _BloodDonationPageState extends State<BloodDonationPage> {
                   const Positioned(
                     top: 65,
                     child: Text(
-                      "Blood Donation From",
+                      "Blood Donation Form",
                       style: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
@@ -72,87 +72,32 @@ class _BloodDonationPageState extends State<BloodDonationPage> {
                       ),
                     ),
                   ),
-                  Positioned(
-                    bottom: 20,
-                    child: Container(
-                      width: 100,
-                      height: 100,
-                      padding: const EdgeInsets.all(10),
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.local_hospital, // This icon looks like a blood drop
-                        size: 60,
-                        color: Colors.red,
-                      ),
-                    ),
-                  ),
                 ],
               ),
             ),
             const SizedBox(height: 30),
-            // Input Fields
+
+            // Input fields
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 25.0),
               child: Column(
                 children: [
-                  // Name TextField
                   TextField(
-                    decoration: InputDecoration(
-                      hintText: "Name",
-                      filled: true,
-                      fillColor: Colors.white,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide.none,
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: const BorderSide(color: Colors.red, width: 2),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
-                    ),
+                    decoration: _inputDecoration("Name"),
                   ),
                   const SizedBox(height: 20),
-                  // Email TextField
+
                   TextField(
-                    decoration: InputDecoration(
-                      hintText: "Email",
-                      filled: true,
-                      fillColor: Colors.white,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide.none,
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: const BorderSide(color: Colors.red, width: 2),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
-                    ),
+                    decoration: _inputDecoration("Email"),
                   ),
                   const SizedBox(height: 20),
-                  // Phone TextField
+
                   TextField(
-                    decoration: InputDecoration(
-                      hintText: "Phone",
-                      filled: true,
-                      fillColor: Colors.white,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide.none,
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: const BorderSide(color: Colors.red, width: 2),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
-                    ),
+                    decoration: _inputDecoration("Phone"),
                   ),
                   const SizedBox(height: 20),
-                  // Gender Radio Buttons
+
+                  // Gender
                   Row(
                     children: [
                       Expanded(
@@ -160,10 +105,8 @@ class _BloodDonationPageState extends State<BloodDonationPage> {
                           title: const Text('Man'),
                           value: 'man',
                           groupValue: _selectedGender,
-                          onChanged: (String? value) {
-                            setState(() {
-                              _selectedGender = value;
-                            });
+                          onChanged: (value) {
+                            setState(() => _selectedGender = value);
                           },
                           activeColor: Colors.red,
                         ),
@@ -173,10 +116,8 @@ class _BloodDonationPageState extends State<BloodDonationPage> {
                           title: const Text('Female'),
                           value: 'female',
                           groupValue: _selectedGender,
-                          onChanged: (String? value) {
-                            setState(() {
-                              _selectedGender = value;
-                            });
+                          onChanged: (value) {
+                            setState(() => _selectedGender = value);
                           },
                           activeColor: Colors.red,
                         ),
@@ -184,35 +125,23 @@ class _BloodDonationPageState extends State<BloodDonationPage> {
                     ],
                   ),
                   const SizedBox(height: 20),
-                  // Date of Birth TextField
+
                   TextField(
                     controller: _dateController,
                     readOnly: true,
                     onTap: () => _selectDate(context),
-                    decoration: InputDecoration(
-                      hintText: "Date of Birth",
-                      filled: true,
-                      fillColor: Colors.white,
+                    decoration: _inputDecoration("Date of Birth").copyWith(
                       suffixIcon: const Icon(Icons.calendar_today, color: Colors.grey),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide.none,
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: const BorderSide(color: Colors.red, width: 2),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
                     ),
                   ),
                   const SizedBox(height: 20),
+
                   // Blood Group Dropdown
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: Colors.white, width: 0),
                     ),
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<String>(
@@ -236,10 +165,13 @@ class _BloodDonationPageState extends State<BloodDonationPage> {
                     ),
                   ),
                   const SizedBox(height: 40),
+
                   // Submit Button
                   ElevatedButton(
                     onPressed: () {
-                      // TODO: Implement submission logic
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text("Form submitted!")),
+                      );
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.red,
@@ -257,10 +189,26 @@ class _BloodDonationPageState extends State<BloodDonationPage> {
                 ],
               ),
             ),
-            const SizedBox(height: 20),
           ],
         ),
       ),
+    );
+  }
+
+  InputDecoration _inputDecoration(String hint) {
+    return InputDecoration(
+      hintText: hint,
+      filled: true,
+      fillColor: Colors.white,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: BorderSide.none,
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(color: Colors.red, width: 2),
+      ),
+      contentPadding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
     );
   }
 }
