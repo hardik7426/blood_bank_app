@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:blood_bank_app/screens/user/messages_page.dart'; // Import the new MessagesPage
+import 'package:blood_bank_app/screens/user/messages_page.dart';
+import 'package:blood_bank_app/screens/user/camps_page.dart';
+import 'package:blood_bank_app/screens/user/history_page.dart';
+import 'package:blood_bank_app/screens/user/profile_page.dart';
+import 'package:blood_bank_app/screens/user/about_us_page.dart'; // Import the new AboutUsPage
 
 class DrawerPage extends StatelessWidget {
   final String fullName;
@@ -20,6 +24,20 @@ class DrawerPage extends StatelessWidget {
     return '$firstName #123';
   }
 
+  // Helper function to build the ListTile and handle navigation
+  Widget _buildDrawerItem(BuildContext context, String title, VoidCallback onTap) {
+    return ListTile(
+      title: Text(title, style: const TextStyle(fontSize: 16)),
+      trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.red),
+      onTap: () {
+        // 1. Close the drawer immediately
+        Navigator.pop(context); 
+        // 2. Execute the navigation logic
+        onTap(); 
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final formattedName = _formatName(fullName);
@@ -31,7 +49,7 @@ class DrawerPage extends StatelessWidget {
       child: ListView(
         padding: EdgeInsets.zero,
         children: <Widget>[
-          // Drawer header matching the provided image design
+          // Drawer header
           Container(
             height: 200,
             decoration: const BoxDecoration(
@@ -45,32 +63,17 @@ class DrawerPage extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Back arrow button
                   IconButton(
                     icon: const Icon(Icons.arrow_back, color: Colors.white),
                     onPressed: () {
-                      Navigator.pop(context); // Closes the drawer
+                      Navigator.pop(context); 
                     },
                   ),
                   const Spacer(),
-                  // Heart icon
-                  const Icon(
-                    Icons.favorite,
-                    size: 40,
-                    color: Colors.white,
-                  ),
+                  const Icon(Icons.favorite, size: 40, color: Colors.white),
                   const SizedBox(height: 5),
-                  // User's name
-                  Text(
-                    formattedName,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  Text(formattedName, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 2),
-                  // Donor Status
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(
@@ -79,25 +82,36 @@ class DrawerPage extends StatelessWidget {
                     ),
                     child: Text(
                       "Donor Status : $donorStatus",
-                      style: TextStyle(
-                        color: canDonate ? Colors.black : Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
+                      style: TextStyle(color: canDonate ? Colors.black : Colors.white, fontSize: 14, fontWeight: FontWeight.w500),
                     ),
                   ),
                 ],
               ),
             ),
           ),
+          
           // Drawer menu items
           _buildDrawerItem(context, 'Messages', () {
-            Navigator.push(context, MaterialPageRoute(builder: (_) => const MessagesPage()));
+             Navigator.push(context, MaterialPageRoute(builder: (_) => const MessagesPage()));
           }),
-          _buildDrawerItem(context, 'Camp', () {}),
-          _buildDrawerItem(context, 'History', () {}),
-          _buildDrawerItem(context, 'Profile', () {}),
-          _buildDrawerItem(context, 'Contact us', () {}),
+          
+          _buildDrawerItem(context, 'Camp', () {
+             Navigator.push(context, MaterialPageRoute(builder: (_) => const CampsPage()));
+          }),
+          
+          _buildDrawerItem(context, 'History', () {
+             Navigator.push(context, MaterialPageRoute(builder: (_) => const HistoryPage()));
+          }),
+          
+          _buildDrawerItem(context, 'Profile', () {
+            // Navigation to Profile Page
+           Navigator.push(context, MaterialPageRoute(builder: (_) => ProfilePage(fullName: fullName, /* pass other args */)));
+          }),
+          
+          // Navigation for Contact us Page
+          _buildDrawerItem(context, 'Contact us', () {
+            Navigator.push(context, MaterialPageRoute(builder: (_) => const AboutUsPage()));
+          }),
 
           const Divider(),
           const SizedBox(height: 20),
@@ -108,36 +122,20 @@ class DrawerPage extends StatelessWidget {
             child: OutlinedButton.icon(
               onPressed: () {
                 Navigator.pop(context); // Close drawer
-                // TODO: Implement sign out logic and navigate back to LoginPage
+                // TODO: Implement sign out logic
               },
               style: OutlinedButton.styleFrom(
                 foregroundColor: Colors.red,
                 side: const BorderSide(color: Colors.red, width: 2),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 padding: const EdgeInsets.symmetric(vertical: 12),
               ),
               icon: const Icon(Icons.logout),
-              label: const Text(
-                "Sign Out",
-                style: TextStyle(fontSize: 18),
-              ),
+              label: const Text("Sign Out", style: TextStyle(fontSize: 18)),
             ),
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildDrawerItem(BuildContext context, String title, VoidCallback onTap) {
-    return ListTile(
-      title: Text(title, style: const TextStyle(fontSize: 16)),
-      trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.red),
-      onTap: () {
-        Navigator.pop(context); // Close the drawer before navigating
-        onTap();
-      },
     );
   }
 }
