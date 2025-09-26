@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:blood_bank_app/screens/user/messages_page.dart'; // Import the new MessagesPage
 
 class DrawerPage extends StatelessWidget {
   final String fullName;
@@ -15,7 +16,6 @@ class DrawerPage extends StatelessWidget {
   // Helper method to format the name for the header (e.g., "John #123")
   String _formatName(String name) {
     if (name.isEmpty) return 'User #123';
-    // Get the first word of the name, and append a placeholder ID
     final firstName = name.split(' ')[0];
     return '$firstName #123';
   }
@@ -25,7 +25,7 @@ class DrawerPage extends StatelessWidget {
     final formattedName = _formatName(fullName);
     final canDonate = age >= 18;
     final donorStatus = canDonate ? 'Approved' : 'Not Approved';
-    const approvedColor = Color(0xFFE8F5E9); // Light color for contrast
+    const approvedColor = Color(0xFFE8F5E9); 
 
     return Drawer(
       child: ListView(
@@ -70,7 +70,7 @@ class DrawerPage extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 2),
-                  // Donor Status (mimicking the status background for visibility)
+                  // Donor Status
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(
@@ -91,11 +91,13 @@ class DrawerPage extends StatelessWidget {
             ),
           ),
           // Drawer menu items
-          _buildDrawerItem(context, 'Messages'),
-          _buildDrawerItem(context, 'Camp'),
-          _buildDrawerItem(context, 'History'),
-          _buildDrawerItem(context, 'Profile'),
-          _buildDrawerItem(context, 'Contact us'),
+          _buildDrawerItem(context, 'Messages', () {
+            Navigator.push(context, MaterialPageRoute(builder: (_) => const MessagesPage()));
+          }),
+          _buildDrawerItem(context, 'Camp', () {}),
+          _buildDrawerItem(context, 'History', () {}),
+          _buildDrawerItem(context, 'Profile', () {}),
+          _buildDrawerItem(context, 'Contact us', () {}),
 
           const Divider(),
           const SizedBox(height: 20),
@@ -107,7 +109,6 @@ class DrawerPage extends StatelessWidget {
               onPressed: () {
                 Navigator.pop(context); // Close drawer
                 // TODO: Implement sign out logic and navigate back to LoginPage
-                // Example: Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const LoginPage()), (route) => false);
               },
               style: OutlinedButton.styleFrom(
                 foregroundColor: Colors.red,
@@ -129,13 +130,13 @@ class DrawerPage extends StatelessWidget {
     );
   }
 
-  Widget _buildDrawerItem(BuildContext context, String title) {
+  Widget _buildDrawerItem(BuildContext context, String title, VoidCallback onTap) {
     return ListTile(
       title: Text(title, style: const TextStyle(fontSize: 16)),
       trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.red),
       onTap: () {
         Navigator.pop(context); // Close the drawer before navigating
-        // TODO: Add navigation logic for each item here
+        onTap();
       },
     );
   }
