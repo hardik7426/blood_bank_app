@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'blood_donation_page.dart'; // Import your form page
 
 class CampsPage extends StatelessWidget {
   const CampsPage({super.key});
@@ -27,9 +28,9 @@ class CampsPage extends StatelessWidget {
                   top: 10,
                   left: 10,
                   child: IconButton(
-                    icon: const Icon(Icons.arrow_back, color: Colors.white, size: 30),
+                    icon: const Icon(Icons.arrow_back,
+                        color: Colors.white, size: 30),
                     onPressed: () {
-                      // Navigate back to the previous screen (the dashboard)
                       Navigator.pop(context);
                     },
                   ),
@@ -47,7 +48,7 @@ class CampsPage extends StatelessWidget {
               ],
             ),
           ),
-          
+
           // Camp Event Card (Scrollable Content)
           Expanded(
             child: SingleChildScrollView(
@@ -82,24 +83,25 @@ class CampsPage extends StatelessWidget {
                   topRight: Radius.circular(15),
                 ),
                 child: Image.asset(
-                  'assets/images/slider1.png', // Placeholder for the camp image
+                  'assets/images/slider1.png',
                   height: 180,
                   width: double.infinity,
                   fit: BoxFit.cover,
                 ),
               ),
-              // "Active" Badge
               const Positioned(
                 top: 10,
                 right: 10,
                 child: Chip(
-                  label: Text('Active', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  label: Text('Active',
+                      style: TextStyle(
+                          color: Colors.white, fontWeight: FontWeight.bold)),
                   backgroundColor: Colors.red,
                 ),
               ),
             ],
           ),
-          
+
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: Column(
@@ -114,11 +116,12 @@ class CampsPage extends StatelessWidget {
                   children: const [
                     Icon(Icons.location_on, color: Colors.red, size: 16),
                     SizedBox(width: 5),
-                    Text('Central Community Center, Downtown', style: TextStyle(color: Colors.black54)),
+                    Text('Central Community Center, Downtown',
+                        style: TextStyle(color: Colors.black54)),
                   ],
                 ),
                 const SizedBox(height: 15),
-                
+
                 // Date/Time Boxes
                 Row(
                   children: [
@@ -128,9 +131,10 @@ class CampsPage extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 15),
-                
+
                 // Capacity Progress Bar
-                const Text('Capacity', style: TextStyle(fontWeight: FontWeight.bold)),
+                const Text('Capacity',
+                    style: TextStyle(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 5),
                 LinearProgressIndicator(
                   value: capacityPercentage,
@@ -143,36 +147,50 @@ class CampsPage extends StatelessWidget {
                   alignment: Alignment.centerRight,
                   child: Text(
                     '$currentCapacity/$maxCapacity',
-                    style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.red),
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold, color: Colors.red),
                   ),
                 ),
-                
+
                 const SizedBox(height: 20),
-                
+
                 // Description
-                const Text('Description', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                const Text('Description',
+                    style:
+                        TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 8),
                 const Text(
-                  'Join us for a community blood donation drive to help save lives. Professional medical staff will be present to ensure safe donation procedures. All blood types are welcome. Light refreshments will be provided.',
+                  'Join us for a community blood donation drive to help save lives. '
+                  'Professional medical staff will be present to ensure safe donation '
+                  'procedures. All blood types are welcome. Light refreshments will be provided.',
                   style: TextStyle(fontSize: 14, color: Colors.black87),
                 ),
-                
+
                 const SizedBox(height: 30),
-                
+
                 // Register Button
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: () {
-                      // TODO: Implement registration logic
+                      // Navigate to blood donation form
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const BloodDonationPage(),
+                        ),
+                      );
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.red,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 15),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
                     ),
-                    child: const Text('Register Now', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    child: const Text('Register Now',
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold)),
                   ),
                 ),
               ],
@@ -183,7 +201,7 @@ class CampsPage extends StatelessWidget {
     );
   }
 
-  Widget _buildDateBox(String label, String date, String time) {
+  static Widget _buildDateBox(String label, String date, String time) {
     return Expanded(
       child: Container(
         padding: const EdgeInsets.all(10),
@@ -194,10 +212,19 @@ class CampsPage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.black54)),
+            Text(label,
+                style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                    color: Colors.black54)),
             const SizedBox(height: 3),
-            Text(date, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.red)),
-            Text(time, style: const TextStyle(fontSize: 14, color: Colors.black87)),
+            Text(date,
+                style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: Colors.red)),
+            Text(time,
+                style: const TextStyle(fontSize: 14, color: Colors.black87)),
           ],
         ),
       ),

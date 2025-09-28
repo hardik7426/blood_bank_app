@@ -3,7 +3,8 @@ import 'package:blood_bank_app/screens/user/messages_page.dart';
 import 'package:blood_bank_app/screens/user/camps_page.dart';
 import 'package:blood_bank_app/screens/user/history_page.dart';
 import 'package:blood_bank_app/screens/user/profile_page.dart';
-import 'package:blood_bank_app/screens/user/about_us_page.dart'; // Import the new AboutUsPage
+import 'package:blood_bank_app/screens/user/about_us_page.dart';
+import 'package:blood_bank_app/screens/auth/login_page.dart'; // Import LoginPage
 
 class DrawerPage extends StatelessWidget {
   final String fullName;
@@ -30,10 +31,8 @@ class DrawerPage extends StatelessWidget {
       title: Text(title, style: const TextStyle(fontSize: 16)),
       trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.red),
       onTap: () {
-        // 1. Close the drawer immediately
-        Navigator.pop(context); 
-        // 2. Execute the navigation logic
-        onTap(); 
+        Navigator.pop(context); // Close drawer first
+        onTap(); // Execute navigation
       },
     );
   }
@@ -43,7 +42,7 @@ class DrawerPage extends StatelessWidget {
     final formattedName = _formatName(fullName);
     final canDonate = age >= 18;
     final donorStatus = canDonate ? 'Approved' : 'Not Approved';
-    const approvedColor = Color(0xFFE8F5E9); 
+    const approvedColor = Color(0xFFE8F5E9);
 
     return Drawer(
       child: ListView(
@@ -66,13 +65,19 @@ class DrawerPage extends StatelessWidget {
                   IconButton(
                     icon: const Icon(Icons.arrow_back, color: Colors.white),
                     onPressed: () {
-                      Navigator.pop(context); 
+                      Navigator.pop(context);
                     },
                   ),
                   const Spacer(),
                   const Icon(Icons.favorite, size: 40, color: Colors.white),
                   const SizedBox(height: 5),
-                  Text(formattedName, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                  Text(
+                    formattedName,
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold),
+                  ),
                   const SizedBox(height: 2),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -82,33 +87,43 @@ class DrawerPage extends StatelessWidget {
                     ),
                     child: Text(
                       "Donor Status : $donorStatus",
-                      style: TextStyle(color: canDonate ? Colors.black : Colors.white, fontSize: 14, fontWeight: FontWeight.w500),
+                      style: TextStyle(
+                        color: canDonate ? Colors.black : Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
           ),
-          
+
           // Drawer menu items
           _buildDrawerItem(context, 'Messages', () {
-             Navigator.push(context, MaterialPageRoute(builder: (_) => const MessagesPage()));
+            Navigator.push(context, MaterialPageRoute(builder: (_) => const MessagesPage()));
           }),
-          
+
           _buildDrawerItem(context, 'Camp', () {
-             Navigator.push(context, MaterialPageRoute(builder: (_) => const CampsPage()));
+            Navigator.push(context, MaterialPageRoute(builder: (_) => const CampsPage()));
           }),
-          
+
           _buildDrawerItem(context, 'History', () {
-             Navigator.push(context, MaterialPageRoute(builder: (_) => const HistoryPage()));
+            Navigator.push(context, MaterialPageRoute(builder: (_) => const HistoryPage()));
           }),
-          
+
           _buildDrawerItem(context, 'Profile', () {
-            // Navigation to Profile Page
-           Navigator.push(context, MaterialPageRoute(builder: (_) => ProfilePage(fullName: fullName, /* pass other args */)));
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => ProfilePage(
+                  fullName: fullName,
+                  // pass additional args if needed
+                ),
+              ),
+            );
           }),
-          
-          // Navigation for Contact us Page
+
           _buildDrawerItem(context, 'Contact us', () {
             Navigator.push(context, MaterialPageRoute(builder: (_) => const AboutUsPage()));
           }),
@@ -122,7 +137,11 @@ class DrawerPage extends StatelessWidget {
             child: OutlinedButton.icon(
               onPressed: () {
                 Navigator.pop(context); // Close drawer
-                // TODO: Implement sign out logic
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (_) => const LoginPage()),
+                  (route) => false, // Clear navigation history
+                );
               },
               style: OutlinedButton.styleFrom(
                 foregroundColor: Colors.red,

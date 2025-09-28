@@ -90,7 +90,7 @@ class _CheckupPageState extends State<CheckupPage> {
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
-                value: _selectedBloodGroup,
+                initialValue: _selectedBloodGroup,
                 items: <String>['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']
                     .map((bg) => DropdownMenuItem(value: bg, child: Text(bg)))
                     .toList(),

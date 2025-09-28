@@ -1,7 +1,8 @@
-import 'package:blood_bank_app/screens/auth/checkup_page.dart';
-import 'package:blood_bank_app/screens/auth/registration_page.dart';
+
 import 'package:flutter/material.dart';
-// import 'package:blood_bank_app/screens/user/checkup_page.dart';
+import 'package:blood_bank_app/screens/auth/registration_page.dart';
+import 'package:blood_bank_app/screens/auth/checkup_page.dart';
+import 'package:blood_bank_app/screens/admin/admin_dashboard_page.dart'; // Import Admin Dashboard
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -14,11 +15,33 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
+  static const String adminEmail = "admin@gmail.com"; // Fixed Admin Gmail
+  static const String adminPassword = "admin123"; // Optional fixed password
+
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  void _handleLogin() {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+
+    if (email == adminEmail && password == adminPassword) {
+      // ✅ Navigate to Admin Dashboard
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const AdminDashboardPage()),
+      );
+    } else {
+      // ✅ Normal User Login
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const CheckupPage()),
+      );
+    }
   }
 
   @override
@@ -98,38 +121,12 @@ class _LoginPageState extends State<LoginPage> {
                 ],
               ),
             ),
-            const SizedBox(height: 10),
-            // Forgot Password
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 25.0),
-              child: Align(
-                alignment: Alignment.centerRight,
-                child: TextButton(
-                  onPressed: () {},
-                  child: const Text(
-                    "Forgot password?",
-                    style: TextStyle(
-                      color: Colors.red,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-            ),
             const SizedBox(height: 20),
             // Login Button
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 25.0),
               child: ElevatedButton(
-                onPressed: () {
-                  // Navigate to the CheckupPage on login success
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const CheckupPage(),
-                    ),
-                  );
-                },
+                onPressed: _handleLogin,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.red,
                   foregroundColor: Colors.white,
@@ -155,7 +152,6 @@ class _LoginPageState extends State<LoginPage> {
                 ),
                 TextButton(
                   onPressed: () {
-                    // Navigate to RegistrationPage
                     Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -173,7 +169,6 @@ class _LoginPageState extends State<LoginPage> {
                 ),
               ],
             ),
-            const SizedBox(height: 20),
           ],
         ),
       ),
