@@ -99,7 +99,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
             _buildTextField("Date of Birth", dobController, icon: Icons.calendar_today),
 
             DropdownButtonFormField<String>(
-              value: _selectedBloodGroup,
+              initialValue: _selectedBloodGroup,
               decoration: _inputDecoration("Blood Group"),
               items: ['A+', 'B+', 'O+', 'AB+', 'A-', 'B-', 'O-', 'AB-']
                   .map((bg) => DropdownMenuItem(value: bg, child: Text(bg)))
