@@ -1,28 +1,81 @@
 import 'package:flutter/material.dart';
-// NOTE: Ensure LoginPage is correctly imported elsewhere for logout functionality
+// NOTE: Assuming LoginPage is correctly imported for logout functionality
+import 'package:blood_bank_app/screens/auth/login_page.dart'; 
+import 'package:blood_bank_app/screens/admin/add_new_camp_page.dart'; // Import the new page
 
 class AdminDashboardPage extends StatelessWidget {
   const AdminDashboardPage({super.key});
+
+  // Function to handle logout, clears navigation stack to return to LoginPage
+  void _handleLogout(BuildContext context) {
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (context) => const LoginPage()), // Navigate to Login Page
+      (Route<dynamic> route) => false, // Clears all history
+    );
+  }
+
+  // Widget for Stats Cards - CORRECTED SIGNATURE
+  Widget _buildStatCard(String title, String value, IconData icon, Color color) {
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      elevation: 3,
+      child: Padding(
+        padding: const EdgeInsets.only(top: 12, bottom: 12, left: 16, right: 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Icon container styling
+            Container(
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(icon, color: color, size: 24),
+            ),
+            const Spacer(),
+            Text(value, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+            Text(title, style: const TextStyle(fontSize: 14, color: Colors.black54)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Widget for Management Module items
+  Widget _buildModuleItem(IconData icon, String title, String subtitle, VoidCallback onTap) {
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 6),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      elevation: 2,
+      child: ListTile(
+        leading: Icon(icon, color: Colors.red, size: 30),
+        title: Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        subtitle: Text(subtitle),
+        trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.red),
+        onTap: onTap,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[100],
       appBar: AppBar(
-        // Set AppBar properties for better visual clarity
         backgroundColor: const Color(0xFFF94747),
         title: const Text(
           "Blood Bank Admin",
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         iconTheme: const IconThemeData(color: Colors.white),
-        actions: const [
-          CircleAvatar(
-            // Use Icons as a fallback if the asset path is not working
-            child: Icon(Icons.person, color: Color(0xFFF94747)), 
-            backgroundColor: Colors.white,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout, color: Colors.white),
+            onPressed: () => _handleLogout(context),
           ),
-          SizedBox(width: 16),
+          const SizedBox(width: 16),
         ],
       ),
       body: SingleChildScrollView(
@@ -36,20 +89,20 @@ class AdminDashboardPage extends StatelessWidget {
             ),
             const SizedBox(height: 16),
 
-            // Stats Cards (FIXED OVERFLOW BY ADJUSTING ASPECT RATIO)
+            // Stats Cards
             GridView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              itemCount: 4, // Fixed count of 4 cards
+              itemCount: 4,
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 2,
                 crossAxisSpacing: 12,
                 mainAxisSpacing: 12,
-                // Increasing the vertical space (making the card slightly taller)
-                childAspectRatio: 1.2, 
+                childAspectRatio: 1.2,
               ),
               itemBuilder: (context, index) {
                 switch (index) {
+                  // CORRECTED CALLS: Only pass 4 arguments
                   case 0:
                     return _buildStatCard("Total Users", "1,247", Icons.people, Colors.blue);
                   case 1:
@@ -75,7 +128,10 @@ class AdminDashboardPage extends StatelessWidget {
               children: [
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: () {},
+                    onPressed: () {
+                      // Navigate to AddNewCampPage
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => const AddNewCampPage()));
+                    },
                     icon: const Icon(Icons.add),
                     label: const Text("Add New Camp"),
                     style: ElevatedButton.styleFrom(
@@ -114,22 +170,22 @@ class AdminDashboardPage extends StatelessWidget {
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 10),
-            _buildModuleItem(Icons.people, "User Management", "Manage registered users"),
-            _buildModuleItem(Icons.favorite, "Blood Donation Requests", "89 pending requests"),
-            _buildModuleItem(Icons.inventory, "Inventory Management", "Blood stock levels"),
-            _buildModuleItem(Icons.history, "Donor History", "View donation records"),
-            _buildModuleItem(Icons.event, "Manage Camps", "Add & manage blood camps"),
-            _buildModuleItem(Icons.local_hospital, "Camp Blood Requests", "Camp donation requests"),
+            // Example of using _buildModuleItem with placeholder navigation
+            _buildModuleItem(Icons.people, "User Management", "Manage registered users", () {}),
+            _buildModuleItem(Icons.favorite, "Blood Donation Requests", "89 pending requests", () {}),
+            _buildModuleItem(Icons.inventory, "Inventory Management", "Blood stock levels", () {}),
+            _buildModuleItem(Icons.history, "Donor History", "View donation records", () {}),
+            _buildModuleItem(Icons.event, "Manage Camps", "Add & manage blood camps", () {
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const AddNewCampPage()));
+            }),
+            _buildModuleItem(Icons.local_hospital, "Camp Blood Requests", "Camp donation requests", () {}),
 
             const SizedBox(height: 30),
 
-            // Logout Button
+            // Logout Button (Duplicated, but kept separate as per your original file structure)
             Center(
               child: ElevatedButton(
-                onPressed: () {
-                  // Use pop to return to the LoginPage, assuming it's the previous route
-                  Navigator.pop(context); 
-                },
+                onPressed: () => _handleLogout(context),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.red,
                   foregroundColor: Colors.white,
@@ -144,54 +200,6 @@ class AdminDashboardPage extends StatelessWidget {
             const SizedBox(height: 16),
           ],
         ),
-      ),
-    );
-  }
-
-  // Widget for Stats Cards
-  Widget _buildStatCard(String title, String value, IconData icon, Color color) {
-    return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      elevation: 3,
-      child: Padding(
-        // Reduced vertical padding slightly to ensure content fits
-        padding: const EdgeInsets.only(top: 12, bottom: 12, left: 16, right: 16), 
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Using a colored Container to mimic the icon + circle background from the image
-            Container(
-              padding: const EdgeInsets.all(4),
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(icon, color: color, size: 24),
-            ),
-            const Spacer(),
-            Text(value, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-            // Reduced font size slightly and margin for the overflowed text
-            Text(title, style: const TextStyle(fontSize: 14, color: Colors.black54)), 
-          ],
-        ),
-      ),
-    );
-  }
-
-  // Widget for Management Module items
-  Widget _buildModuleItem(IconData icon, String title, String subtitle) {
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: 6),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      elevation: 2,
-      child: ListTile(
-        leading: Icon(icon, color: Colors.red, size: 30),
-        title: Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-        subtitle: Text(subtitle),
-        trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.red),
-        onTap: () {
-          // TODO: Implement navigation for module item
-        },
       ),
     );
   }

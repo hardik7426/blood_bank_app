@@ -166,7 +166,7 @@ class _AddNewCampPageState extends State<AddNewCampPage> {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: Colors.grey.shade300, style: BorderStyle.dashed),
+                  border: Border.all(color: Colors.grey.shade300, style: BorderStyle.solid),
                 ),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
