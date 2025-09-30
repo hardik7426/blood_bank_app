@@ -1,3 +1,4 @@
+import 'package:blood_bank_app/screens/admin/camp_requests_page.dart';
 import 'package:blood_bank_app/screens/admin/donor_history_page.dart';
 import 'package:blood_bank_app/screens/admin/inventory_page.dart';
 import 'package:blood_bank_app/screens/admin/manage_camps_page.dart';
@@ -209,7 +210,8 @@ class AdminDashboardPage extends StatelessWidget {
             }),
             _buildModuleItem(Icons.local_hospital, "Camp Blood Requests",
                 "Camp donation requests", () {
-              // TODO
+                  Navigator.push(context,
+                  MaterialPageRoute(builder: (_) => const CampRequestsPage()));
             }),
 
             const SizedBox(height: 30),
