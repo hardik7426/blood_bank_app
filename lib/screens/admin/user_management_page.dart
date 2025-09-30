@@ -8,8 +8,10 @@ class UserManagementPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.red,
-        title: const Text("User Management",
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: const Text(
+          "User Management",
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
@@ -31,8 +33,9 @@ class UserManagementPage extends StatelessWidget {
                 filled: true,
                 fillColor: Colors.white,
                 border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: BorderSide.none),
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide.none,
+                ),
                 contentPadding:
                     const EdgeInsets.symmetric(vertical: 15, horizontal: 10),
               ),
@@ -51,12 +54,12 @@ class UserManagementPage extends StatelessWidget {
     );
   }
 
+  // ✅ Fixed Total Users Card
   Widget _buildTotalUsersCard({required int total}) {
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Container(
-        height: 90,
+      child: Padding(
         padding: const EdgeInsets.all(16),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -64,23 +67,29 @@ class UserManagementPage extends StatelessWidget {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min, // 👈 prevents overflow
               children: [
                 Text(
                   total.toString(),
                   style: const TextStyle(
-                      fontSize: 30,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black),
+                    fontSize: 30,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                  ),
                 ),
-                const Text("Total Users",
-                    style: TextStyle(fontSize: 16, color: Colors.black54)),
+                const SizedBox(height: 4), // 👈 spacing
+                const Text(
+                  "Total Users",
+                  style: TextStyle(fontSize: 16, color: Colors.black54),
+                ),
               ],
             ),
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                  color: Colors.blue.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(10)),
+                color: Colors.blue.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(10),
+              ),
               child: const Icon(Icons.group, color: Colors.blue, size: 35),
             ),
           ],
@@ -105,10 +114,14 @@ class UserManagementPage extends StatelessWidget {
               ? Icon(Icons.person, color: Colors.grey.shade700)
               : null,
         ),
-        title: Text(user['name']!,
-            style: const TextStyle(fontWeight: FontWeight.bold)),
-        subtitle: Text(user['email']!,
-            style: const TextStyle(color: Colors.black54)),
+        title: Text(
+          user['name']!,
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        subtitle: Text(
+          user['email']!,
+          style: const TextStyle(color: Colors.black54),
+        ),
         trailing: IconButton(
           icon: const Icon(Icons.delete_forever, color: Colors.red),
           onPressed: () {
