@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-// NOTE: Assuming LoginPage is correctly imported for logout functionality
 import 'package:blood_bank_app/screens/auth/login_page.dart'; 
-import 'package:blood_bank_app/screens/admin/add_new_camp_page.dart'; // Import the new page
+import 'package:blood_bank_app/screens/admin/add_new_camp_page.dart';
+import 'package:blood_bank_app/screens/admin/blood_requests_page.dart'; // ✅ Import the new page
 
 class AdminDashboardPage extends StatelessWidget {
   const AdminDashboardPage({super.key});
@@ -15,7 +15,7 @@ class AdminDashboardPage extends StatelessWidget {
     );
   }
 
-  // Widget for Stats Cards - CORRECTED SIGNATURE
+  // Widget for Stats Cards
   Widget _buildStatCard(String title, String value, IconData icon, Color color) {
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -102,7 +102,6 @@ class AdminDashboardPage extends StatelessWidget {
               ),
               itemBuilder: (context, index) {
                 switch (index) {
-                  // CORRECTED CALLS: Only pass 4 arguments
                   case 0:
                     return _buildStatCard("Total Users", "1,247", Icons.people, Colors.blue);
                   case 1:
@@ -129,7 +128,6 @@ class AdminDashboardPage extends StatelessWidget {
                 Expanded(
                   child: ElevatedButton.icon(
                     onPressed: () {
-                      // Navigate to AddNewCampPage
                       Navigator.push(context, MaterialPageRoute(builder: (_) => const AddNewCampPage()));
                     },
                     icon: const Icon(Icons.add),
@@ -147,7 +145,10 @@ class AdminDashboardPage extends StatelessWidget {
                 const SizedBox(width: 12),
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: () {},
+                    onPressed: () {
+                      // ✅ NAVIGATION: View Requests Quick Action
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => const BloodRequestsPage()));
+                    },
                     icon: const Icon(Icons.list_alt, color: Colors.red),
                     label: const Text("View Requests"),
                     style: OutlinedButton.styleFrom(
@@ -170,9 +171,13 @@ class AdminDashboardPage extends StatelessWidget {
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 10),
-            // Example of using _buildModuleItem with placeholder navigation
+            
+            // Module Items with Navigation
             _buildModuleItem(Icons.people, "User Management", "Manage registered users", () {}),
-            _buildModuleItem(Icons.favorite, "Blood Donation Requests", "89 pending requests", () {}),
+            _buildModuleItem(Icons.favorite, "Blood Donation Requests", "89 pending requests", () {
+              // ✅ NAVIGATION: Blood Donation Requests Module
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const BloodRequestsPage()));
+            }),
             _buildModuleItem(Icons.inventory, "Inventory Management", "Blood stock levels", () {}),
             _buildModuleItem(Icons.history, "Donor History", "View donation records", () {}),
             _buildModuleItem(Icons.event, "Manage Camps", "Add & manage blood camps", () {
@@ -182,7 +187,7 @@ class AdminDashboardPage extends StatelessWidget {
 
             const SizedBox(height: 30),
 
-            // Logout Button (Duplicated, but kept separate as per your original file structure)
+            // Logout Button
             Center(
               child: ElevatedButton(
                 onPressed: () => _handleLogout(context),
