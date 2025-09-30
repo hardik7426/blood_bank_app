@@ -1,3 +1,6 @@
+import 'package:blood_bank_app/screens/admin/donor_history_page.dart';
+import 'package:blood_bank_app/screens/admin/inventory_page.dart';
+import 'package:blood_bank_app/screens/admin/manage_camps_page.dart';
 import 'package:flutter/material.dart';
 import 'package:blood_bank_app/screens/auth/login_page.dart';
 import 'package:blood_bank_app/screens/admin/add_new_camp_page.dart';
@@ -191,16 +194,18 @@ class AdminDashboardPage extends StatelessWidget {
             }),
             _buildModuleItem(Icons.inventory, "Inventory Management",
                 "Blood stock levels", () {
-              // TODO
+                  Navigator.push(context,
+                  MaterialPageRoute(builder: (_) => const InventoryPage()));
             }),
             _buildModuleItem(Icons.history, "Donor History",
                 "View donation records", () {
-              // TODO
+                  Navigator.push(context,
+                  MaterialPageRoute(builder: (_) => const DonorHistoryPage()));
             }),
             _buildModuleItem(Icons.event, "Manage Camps",
                 "Add & manage blood camps", () {
               Navigator.push(context,
-                  MaterialPageRoute(builder: (_) => const AddNewCampPage()));
+                  MaterialPageRoute(builder: (_) => const ManageCampsPage()));
             }),
             _buildModuleItem(Icons.local_hospital, "Camp Blood Requests",
                 "Camp donation requests", () {

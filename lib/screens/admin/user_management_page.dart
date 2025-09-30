@@ -1,7 +1,28 @@
 import 'package:flutter/material.dart';
 
-class UserManagementPage extends StatelessWidget {
+class UserManagementPage extends StatefulWidget {
   const UserManagementPage({super.key});
+
+  @override
+  State<UserManagementPage> createState() => _UserManagementPageState();
+}
+
+class _UserManagementPageState extends State<UserManagementPage> {
+  List<Map<String, String>> filteredUsers = _userData; // initially all users
+  final TextEditingController _searchController = TextEditingController();
+
+  void _filterUsers(String query) {
+    final results = _userData.where((user) {
+      final name = user['name']!.toLowerCase();
+      final email = user['email']!.toLowerCase();
+      final input = query.toLowerCase();
+      return name.contains(input) || email.contains(input);
+    }).toList();
+
+    setState(() {
+      filteredUsers = results;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -22,14 +43,25 @@ class UserManagementPage extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            _buildTotalUsersCard(total: _userData.length),
+            _buildTotalUsersCard(total: filteredUsers.length),
             const SizedBox(height: 20),
 
-            // Search Bar
+            // ✅ Search Bar with onChanged
             TextField(
+              controller: _searchController,
+              onChanged: _filterUsers,
               decoration: InputDecoration(
                 hintText: "Search users...",
                 prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                suffixIcon: _searchController.text.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear, color: Colors.grey),
+                        onPressed: () {
+                          _searchController.clear();
+                          _filterUsers(""); // reset list
+                        },
+                      )
+                    : null,
                 filled: true,
                 fillColor: Colors.white,
                 border: OutlineInputBorder(
@@ -42,9 +74,9 @@ class UserManagementPage extends StatelessWidget {
             ),
             const SizedBox(height: 20),
 
-            // User List
+            // ✅ User List updates based on search
             Column(
-              children: _userData
+              children: filteredUsers
                   .map((user) => _buildUserCard(context, user))
                   .toList(),
             ),
@@ -67,7 +99,7 @@ class UserManagementPage extends StatelessWidget {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.center,
-              mainAxisSize: MainAxisSize.min, // 👈 prevents overflow
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   total.toString(),
@@ -77,7 +109,7 @@ class UserManagementPage extends StatelessWidget {
                     color: Colors.black,
                   ),
                 ),
-                const SizedBox(height: 4), // 👈 spacing
+                const SizedBox(height: 4),
                 const Text(
                   "Total Users",
                   style: TextStyle(fontSize: 16, color: Colors.black54),
