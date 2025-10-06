@@ -16,10 +16,10 @@ class ProfilePage extends StatelessWidget {
 
   const ProfilePage({
     super.key,
-    this.fullName = 'Dabhi Dhiraj',
+    this.fullName = 'User name',
     this.email = 'bloodbanks@gmail.com',
     this.phone = '1234567890',
-    this.location = 'India Gujarat',
+    this.location = 'India,Gujrat ',
     this.donations = 5,
     this.bloodGroup = 'A+',
     this.gender = 'Male',
