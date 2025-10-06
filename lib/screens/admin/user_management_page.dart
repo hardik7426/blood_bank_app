@@ -226,26 +226,26 @@ const List<Map<String, String>> _userData = [
   {
     'name': 'Sarah Johnson',
     'email': 'sarah.johnson@gmail.com',
-    'image': 'assets/images/user1.png'
+    'image': 'assets/images/logo.png'
   },
   {
     'name': 'Michael Chen',
     'email': 'michael.chen@gmail.com',
-    'image': 'assets/images/user2.png'
+    'image': 'assets/images/logo.png'
   },
   {
     'name': 'David Rodriguez',
     'email': 'david.rodriguez@gmail.com',
-    'image': 'assets/images/user3.png'
+    'image': 'assets/images/logo.png'
   },
   {
     'name': 'Emily Watson',
     'email': 'emily.watson@gmail.com',
-    'image': 'assets/images/user4.png'
+    'image': 'assets/images/logo.png'
   },
   {
     'name': 'James Wilson',
     'email': 'james.wilson@gmail.com',
-    'image': 'assets/images/user5.png'
+    'image': 'assets/images/logo.png'
   },
 ];
