@@ -49,7 +49,8 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
                   bottomRight: Radius.circular(40),
                 ),
               ),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              // increase size for better view
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               child: Row(
                 children: [
                   // Menu Icon wired to the GlobalKey
@@ -87,7 +88,7 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
                       isBloodGroup: true,
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 40),
                   Expanded(
                     child: _infoCard(
                       title: "Donor Status",
@@ -138,6 +139,7 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
                       );
                     },
                     child: const Text('Donate Blood'),
+                    
                   ),
                 ],
               ),
