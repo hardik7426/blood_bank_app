@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'blood_donation_page.dart'; // Import your form page
+import 'blood_donation_page.dart'; 
+// Import your form page
 
 class CampsPage extends StatelessWidget {
   const CampsPage({super.key});
@@ -63,7 +64,7 @@ class CampsPage extends StatelessWidget {
 
   Widget _buildCampCard(BuildContext context) {
     // Current dummy data
-    const currentCapacity = 45;
+    const currentCapacity = 65;
     const maxCapacity = 100;
     final capacityPercentage = currentCapacity / maxCapacity;
 

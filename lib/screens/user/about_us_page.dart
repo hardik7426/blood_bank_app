@@ -136,7 +136,7 @@ class AboutUsPage extends StatelessWidget {
                     ),
                     child: const Text(
                       "Submit",
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
                     ),
                   ),
                 ],
