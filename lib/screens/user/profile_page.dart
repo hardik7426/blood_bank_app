@@ -1,8 +1,9 @@
 // profile_page.dart
 import 'package:flutter/material.dart';
-import 'edit_profile_page.dart';
+import 'package:blood_bank_app/screens/user/edit_profile_page.dart'; // Ensure correct import
 
-class ProfilePage extends StatelessWidget {
+class ProfilePage extends StatefulWidget {
+  // All fields are now passed into the widget's constructor
   final String fullName;
   final String email;
   final String phone;
@@ -27,6 +28,77 @@ class ProfilePage extends StatelessWidget {
     this.age = 19,
     this.lastDonation = '3/9/2024',
   });
+
+  @override
+  State<ProfilePage> createState() => _ProfilePageState();
+}
+
+class _ProfilePageState extends State<ProfilePage> {
+  // Convert fields to state variables to hold dynamic data
+  late String _fullName;
+  late String _email;
+  late String _phone;
+  late String _location;
+  late int _donations;
+  late String _bloodGroup;
+  late String _gender;
+  late String _dob;
+  late int _age;
+  late String _lastDonation;
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialize state variables with constructor values
+    _fullName = widget.fullName;
+    _email = widget.email;
+    _phone = widget.phone;
+    _location = widget.location;
+    _donations = widget.donations;
+    _bloodGroup = widget.bloodGroup;
+    _gender = widget.gender;
+    _dob = widget.dob;
+    _age = widget.age;
+    _lastDonation = widget.lastDonation;
+  }
+
+  // Function to handle navigation and state update
+  void _navigateToEditProfile(BuildContext context) async {
+    // Navigate and await result (the updated data map)
+    final updatedData = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => EditProfilePage(
+          fullName: _fullName,
+          email: _email,
+          phone: _phone,
+          location: _location,
+          donations: _donations,
+          bloodGroup: _bloodGroup,
+          gender: _gender,
+          dob: _dob,
+          age: _age,
+          lastDonation: _lastDonation,
+        ),
+      ),
+    );
+
+    // Check if data was returned (user clicked Save Changes)
+    if (updatedData != null && updatedData is Map<String, dynamic>) {
+      setState(() {
+        _fullName = updatedData['fullName'];
+        _email = updatedData['email'];
+        _phone = updatedData['phone'];
+        _location = updatedData['location'];
+        _donations = updatedData['donations'];
+        _bloodGroup = updatedData['bloodGroup'];
+        _gender = updatedData['gender'];
+        _dob = updatedData['dob'];
+        _age = updatedData['age'];
+        _lastDonation = updatedData['lastDonation'];
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -68,7 +140,7 @@ class ProfilePage extends StatelessWidget {
           const SizedBox(height: 10),
 
           Text(
-            fullName,
+            _fullName, // Use state variable
             style: const TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.bold,
@@ -76,7 +148,7 @@ class ProfilePage extends StatelessWidget {
             ),
           ),
           Text(
-            email,
+            _email, // Use state variable
             style: const TextStyle(fontSize: 16, color: Colors.black54),
           ),
           const SizedBox(height: 20),
@@ -87,23 +159,19 @@ class ProfilePage extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 40.0),
                 child: Column(
                   children: [
-                    _ProfileDetailRow(label: "Phone", value: phone),
-                    _ProfileDetailRow(label: "Location", value: location),
-                    _ProfileDetailRow(label: "Donations", value: donations.toString()),
-                    _ProfileDetailRow(label: "Blood Group", value: bloodGroup),
-                    _ProfileDetailRow(label: "Gender", value: gender),
-                    _ProfileDetailRow(label: "DOB", value: dob),
-                    _ProfileDetailRow(label: "Age", value: age.toString()),
-                    _ProfileDetailRow(label: "Last Donation", value: lastDonation),
+                    // Use state variables for detail rows
+                    _ProfileDetailRow(label: "Phone", value: _phone),
+                    _ProfileDetailRow(label: "Location", value: _location),
+                    _ProfileDetailRow(label: "Donations", value: _donations.toString()),
+                    _ProfileDetailRow(label: "Blood Group", value: _bloodGroup),
+                    _ProfileDetailRow(label: "Gender", value: _gender),
+                    _ProfileDetailRow(label: "DOB", value: _dob),
+                    _ProfileDetailRow(label: "Age", value: _age.toString()),
+                    _ProfileDetailRow(label: "Last Donation", value: _lastDonation),
                     const SizedBox(height: 30),
 
                     ElevatedButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => const EditProfilePage()),
-                        );
-                      },
+                      onPressed: () => _navigateToEditProfile(context), // Call the state handler
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.red,
                         foregroundColor: Colors.white,
