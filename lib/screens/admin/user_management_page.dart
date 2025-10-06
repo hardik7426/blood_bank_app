@@ -8,11 +8,22 @@ class UserManagementPage extends StatefulWidget {
 }
 
 class _UserManagementPageState extends State<UserManagementPage> {
-  List<Map<String, String>> filteredUsers = _userData; // initially all users
+  // These lists hold the state for the user data
+  late List<Map<String, String>> _allUsers;
+  late List<Map<String, String>> _filteredUsers;
   final TextEditingController _searchController = TextEditingController();
 
+  @override
+  void initState() {
+    super.initState();
+    // Initialize the lists with the sample data when the page loads
+    _allUsers = List.from(_userData);
+    _filteredUsers = List.from(_allUsers);
+  }
+
+  // Function to filter users based on search query
   void _filterUsers(String query) {
-    final results = _userData.where((user) {
+    final results = _allUsers.where((user) {
       final name = user['name']!.toLowerCase();
       final email = user['email']!.toLowerCase();
       final input = query.toLowerCase();
@@ -20,8 +31,45 @@ class _UserManagementPageState extends State<UserManagementPage> {
     }).toList();
 
     setState(() {
-      filteredUsers = results;
+      _filteredUsers = results;
     });
+  }
+
+  // This function handles the actual deletion from the list
+  void _deleteUser(Map<String, String> userToDelete) {
+    setState(() {
+      _allUsers.removeWhere((user) => user['email'] == userToDelete['email']);
+      _filterUsers(_searchController.text);
+    });
+  }
+
+  // This function shows a confirmation dialog before deleting
+  void _showDeleteConfirmation(BuildContext context, Map<String, String> user) {
+    showDialog(
+      context: context,
+      builder: (BuildContext ctx) {
+        return AlertDialog(
+          title: const Text('Confirm Deletion'),
+          content: Text('Are you sure you want to delete ${user['name']}?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                _deleteUser(user);
+                Navigator.of(ctx).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('${user['name']} has been deleted.')),
+                );
+              },
+              child: const Text('Delete', style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -39,54 +87,63 @@ class _UserManagementPageState extends State<UserManagementPage> {
         ),
       ),
       backgroundColor: Colors.grey[100],
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            _buildTotalUsersCard(total: filteredUsers.length),
-            const SizedBox(height: 20),
-
-            // ✅ Search Bar with onChanged
-            TextField(
-              controller: _searchController,
-              onChanged: _filterUsers,
-              decoration: InputDecoration(
-                hintText: "Search users...",
-                prefixIcon: const Icon(Icons.search, color: Colors.grey),
-                suffixIcon: _searchController.text.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear, color: Colors.grey),
-                        onPressed: () {
-                          _searchController.clear();
-                          _filterUsers(""); // reset list
-                        },
-                      )
-                    : null,
-                filled: true,
-                fillColor: Colors.white,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide.none,
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                _buildTotalUsersCard(total: _allUsers.length),
+                const SizedBox(height: 20),
+                TextField(
+                  controller: _searchController,
+                  onChanged: _filterUsers,
+                  decoration: InputDecoration(
+                    hintText: "Search by name or email...",
+                    prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                    suffixIcon: _searchController.text.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear, color: Colors.grey),
+                            onPressed: () {
+                              _searchController.clear();
+                              _filterUsers("");
+                            },
+                          )
+                        : null,
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide.none,
+                    ),
+                    contentPadding:
+                        const EdgeInsets.symmetric(vertical: 15, horizontal: 10),
+                  ),
                 ),
-                contentPadding:
-                    const EdgeInsets.symmetric(vertical: 15, horizontal: 10),
-              ),
+              ],
             ),
-            const SizedBox(height: 20),
-
-            // ✅ User List updates based on search
-            Column(
-              children: filteredUsers
-                  .map((user) => _buildUserCard(context, user))
-                  .toList(),
-            ),
-          ],
-        ),
+          ),
+          Expanded(
+            child: _filteredUsers.isEmpty
+                ? const Center(
+                    child: Text(
+                      'No users found.',
+                      style: TextStyle(fontSize: 18, color: Colors.grey),
+                    ),
+                  )
+                : ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    itemCount: _filteredUsers.length,
+                    itemBuilder: (context, index) {
+                      return _buildUserCard(context, _filteredUsers[index]);
+                    },
+                  ),
+          ),
+        ],
       ),
     );
   }
 
-  // ✅ Fixed Total Users Card
   Widget _buildTotalUsersCard({required int total}) {
     return Card(
       elevation: 4,
@@ -99,7 +156,6 @@ class _UserManagementPageState extends State<UserManagementPage> {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.center,
-              mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   total.toString(),
@@ -132,7 +188,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
 
   Widget _buildUserCard(BuildContext context, Map<String, String> user) {
     return Card(
-      margin: const EdgeInsets.only(bottom: 10),
+      margin: const EdgeInsets.only(bottom: 12),
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       child: ListTile(
@@ -157,9 +213,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
         trailing: IconButton(
           icon: const Icon(Icons.delete_forever, color: Colors.red),
           onPressed: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Delete user ${user['name']}')),
-            );
+            _showDeleteConfirmation(context, user);
           },
         ),
       ),
