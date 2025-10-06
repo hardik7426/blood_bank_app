@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:blood_bank_app/screens/splash/splash_screen_manager.dart';
-// import 'package:blood_bank_app/screens/splash/splash_screen_manager.dart';
+
 void main() {
   runApp(const MyApp());
 }
