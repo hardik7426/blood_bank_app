@@ -111,7 +111,7 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.red,
-                      minimumSize: const Size.fromHeight(50),
+                      minimumSize: const Size.fromHeight(49),
                     ),
                     onPressed: () {
                       Navigator.push(
@@ -168,7 +168,7 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
         children: [
           Text(title,
               style: TextStyle(
-                  fontWeight: FontWeight.bold, fontSize: 16, color: color)),
+                  fontWeight: FontWeight.bold, fontSize: 22, color: color)),
           const SizedBox(height: 10),
           if (isBloodGroup)
             // Blood Drop Icon
