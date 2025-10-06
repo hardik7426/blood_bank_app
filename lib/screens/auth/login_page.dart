@@ -1,7 +1,7 @@
 import 'package:blood_bank_app/screens/auth/checkup_page.dart';
 import 'package:flutter/material.dart';
 import 'package:blood_bank_app/screens/auth/registration_page.dart';
-import 'package:blood_bank_app/screens/user/checkup_page.dart';
+// import 'package:blood_bank_app/screens/user/checkup_page.dart';
 import 'package:blood_bank_app/screens/admin/admin_dashboard_page.dart';
 
 class LoginPage extends StatefulWidget {
