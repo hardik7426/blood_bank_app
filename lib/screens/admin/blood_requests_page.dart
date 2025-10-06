@@ -1,87 +1,70 @@
 import 'package:flutter/material.dart';
 
-class BloodRequestsPage extends StatelessWidget {
+// --- Global Data Structure (Moved inside the State for modification) ---
+// Note: In a real app, this would be fetched from Firestore.
+const Map<String, Color> _bloodColors = {
+  'A+': Color(0xFFF94747), // Red
+  'A-': Color(0xFFF94747),
+  'B+': Colors.blue,
+  'B-': Colors.blue,
+  'AB+': Colors.purple,
+  'AB-': Colors.purple,
+  'O+': Colors.green,
+  'O-': Colors.green,
+};
+
+
+class BloodRequestsPage extends StatefulWidget {
   const BloodRequestsPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.grey[100],
-      body: CustomScrollView(
-        slivers: [
-          // Custom AppBar with Title and Back Button
-          SliverAppBar(
-            pinned: true,
-            automaticallyImplyLeading: false,
-            backgroundColor: Colors.grey[100],
-            elevation: 0,
-            expandedHeight: 40.0,
-            flexibleSpace: FlexibleSpaceBar(
-              titlePadding: const EdgeInsets.symmetric(horizontal: 16.0),
-              title: Row(
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back, color: Colors.black),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                  const Text(
-                    "Blood Requests",
-                    style: TextStyle(color: Colors.black, fontSize: 20, fontWeight: FontWeight.bold),
-                  ),
-                ],
-              ),
-            ),
-          ),
+  State<BloodRequestsPage> createState() => _BloodRequestsPageState();
+}
 
-          // Statistics Cards Section
-          SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            sliver: SliverList(
-              delegate: SliverChildListDelegate(
-                [
-                  Row(
-                    children: [
-                      _buildStatCard(context, "Total Requests", "127", const Color(0xFFF94747), Icons.file_download),
-                      const SizedBox(width: 12),
-                      _buildStatCard(context, "completed", "89", Colors.green, Icons.check),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  // Cancelled Card (centered)
-                  Center(
-                    child: SizedBox(
-                      width: MediaQuery.of(context).size.width / 2.5,
-                      child: _buildStatCard(context, "cancle", "32", Colors.orange, Icons.schedule),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                ],
-              ),
-            ),
-          ),
+class _BloodRequestsPageState extends State<BloodRequestsPage> {
+  // Use a List of Maps that can be modified via setState
+  List<Map<String, dynamic>> _requestsData = [
+    {'name': 'Sarah Johnson', 'id': '#12847', 'bloodGroup': 'A+', 'hospital': 'City General Hospital', 'time': '2 hours ago', 'units': 2, 'status': 'pending'},
+    {'name': 'Michael Chen', 'id': '#12848', 'bloodGroup': 'O-', 'hospital': 'Metro Medical Center', 'time': '4 hours ago', 'units': 1, 'status': 'pending'},
+    {'name': 'Emma Rodriguez', 'id': '#12849', 'bloodGroup': 'B+', 'hospital': 'Regional Hospital', 'time': '6 hours ago', 'units': 3, 'status': 'completed'},
+    {'name': 'David Park', 'id': '#12850', 'bloodGroup': 'AB-', 'hospital': 'Emergency Care Unit', 'time': '1 hour ago', 'units': 4, 'status': 'pending'},
+    {'name': 'Alice Smith', 'id': '#12851', 'bloodGroup': 'A-', 'hospital': 'Westside Clinic', 'time': '3 hours ago', 'units': 2, 'status': 'cancelled'},
+  ];
 
-          // Requests List Section
-          SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            sliver: SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  final request = _requestsData[index];
-                  return _buildRequestCard(context, request);
-                },
-                childCount: _requestsData.length,
-              ),
-            ),
-          ),
-          const SliverToBoxAdapter(child: SizedBox(height: 20)),
-        ],
-      ),
+  // --- Data Manipulation Methods ---
+
+  void _updateRequestStatus(String requestId, String newStatus) {
+    setState(() {
+      final index = _requestsData.indexWhere((req) => req['id'] == requestId);
+      if (index != -1) {
+        _requestsData[index]['status'] = newStatus;
+      }
+    });
+  }
+
+  void _acceptRequest(String requestId) {
+    _updateRequestStatus(requestId, 'completed');
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Request accepted and marked as completed!")),
     );
+  }
+
+  void _cancelRequest(String requestId) {
+    _updateRequestStatus(requestId, 'cancelled');
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Request cancelled.")),
+    );
+  }
+
+  // --- Dynamic Statistics Calculation ---
+
+  int _countByStatus(String status) {
+    return _requestsData.where((req) => req['status'] == status).length;
   }
 
   // --- Helper Widgets ---
 
-  Widget _buildStatCard(BuildContext context, String title, String value, Color color, IconData icon) {
+  Widget _buildStatCard(String title, String value, Color color, IconData icon) {
     return Expanded(
       child: Container(
         height: 100,
@@ -121,23 +104,25 @@ class BloodRequestsPage extends StatelessWidget {
     );
   }
 
-  Widget _buildRequestCard(BuildContext context, Map<String, dynamic> request) {
-    // Determine the color and widget for the main button based on status
+  Widget _buildRequestCard(Map<String, dynamic> request) {
+    final status = request['status'];
+    final bloodColor = _bloodColors[request['bloodGroup']] ?? Colors.grey;
+
+    // Determine the button row based on status
     Widget buttonRow;
-    if (request['status'] == 'completed') {
+    if (status == 'completed') {
       buttonRow = Padding(
         padding: const EdgeInsets.only(top: 8.0),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Expanded(
               child: OutlinedButton(
-                onPressed: () {},
+                onPressed: () => _cancelRequest(request['id']), // Cancel logic
                 style: OutlinedButton.styleFrom(
                   foregroundColor: Colors.red,
                   side: const BorderSide(color: Colors.red),
                 ),
-                child: const Text('Cancle'),
+                child: const Text('Cancel'),
               ),
             ),
             const SizedBox(width: 8),
@@ -155,14 +140,14 @@ class BloodRequestsPage extends StatelessWidget {
           ],
         ),
       );
-    } else {
+    } else if (status == 'pending') {
       buttonRow = Padding(
         padding: const EdgeInsets.only(top: 8.0),
         child: Row(
           children: [
             Expanded(
               child: ElevatedButton(
-                onPressed: () {},
+                onPressed: () => _acceptRequest(request['id']), // Accept logic
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.red,
                   foregroundColor: Colors.white,
@@ -173,17 +158,25 @@ class BloodRequestsPage extends StatelessWidget {
             const SizedBox(width: 8),
             Expanded(
               child: OutlinedButton(
-                onPressed: () {},
+                onPressed: () => _cancelRequest(request['id']), // Cancel logic
                 style: OutlinedButton.styleFrom(
                   foregroundColor: Colors.red,
                   side: const BorderSide(color: Colors.red),
                 ),
-                child: const Text('Cancle'),
+                child: const Text('Cancel'),
               ),
             ),
           ],
         ),
       );
+    } else { // status == 'cancelled'
+        buttonRow = const Padding(
+          padding: EdgeInsets.only(top: 8.0),
+          child: Text(
+            'Request Cancelled',
+            style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold),
+          ),
+        );
     }
 
     return Card(
@@ -201,7 +194,7 @@ class BloodRequestsPage extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: request['bloodColor'],
+                    color: bloodColor,
                     shape: BoxShape.circle,
                   ),
                   child: Text(
@@ -258,48 +251,85 @@ class BloodRequestsPage extends StatelessWidget {
       ),
     );
   }
-}
 
-// --- Sample Data ---
-const List<Map<String, dynamic>> _requestsData = [
-  {
-    'name': 'Sarah Johnson',
-    'id': '#12847',
-    'bloodGroup': 'A+',
-    'bloodColor': Colors.red,
-    'hospital': 'City General Hospital',
-    'time': '2 hours ago',
-    'units': 2,
-    'status': 'pending'
-  },
-  {
-    'name': 'Michael Chen',
-    'id': '#12848',
-    'bloodGroup': 'O-',
-    'bloodColor': Colors.blue,
-    'hospital': 'Metro Medical Center',
-    'time': '4 hours ago',
-    'units': 1,
-    'status': 'pending'
-  },
-  {
-    'name': 'Emma Rodriguez',
-    'id': '#12849',
-    'bloodGroup': 'B+',
-    'bloodColor': Colors.green,
-    'hospital': 'Regional Hospital',
-    'time': '6 hours ago',
-    'units': 3,
-    'status': 'completed' // Sample completed request
-  },
-  {
-    'name': 'David Park',
-    'id': '#12850',
-    'bloodGroup': 'AB-',
-    'bloodColor': Colors.purple,
-    'hospital': 'Emergency Care Unit',
-    'time': '1 hour ago',
-    'units': 4,
-    'status': 'pending'
-  },
-];
+  @override
+  Widget build(BuildContext context) {
+    // Dynamic Stats
+    final totalRequests = _requestsData.length;
+    final completedRequests = _countByStatus('completed');
+    final cancelledRequests = _countByStatus('cancelled');
+    final pendingRequests = totalRequests - completedRequests - cancelledRequests;
+
+    return Scaffold(
+      backgroundColor: Colors.grey[100],
+      body: CustomScrollView(
+        slivers: [
+          // Custom AppBar
+          SliverAppBar(
+            pinned: true,
+            automaticallyImplyLeading: false,
+            backgroundColor: Colors.grey[100],
+            elevation: 0,
+            expandedHeight: 40.0,
+            flexibleSpace: FlexibleSpaceBar(
+              titlePadding: const EdgeInsets.symmetric(horizontal: 16.0),
+              title: Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back, color: Colors.black),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                  const Text(
+                    "Blood Requests",
+                    style: TextStyle(color: Colors.black, fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // Statistics Cards Section
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            sliver: SliverList(
+              delegate: SliverChildListDelegate(
+                [
+                  Row(
+                    children: [
+                      _buildStatCard("Total Requests", totalRequests.toString(), const Color(0xFFF94747), Icons.file_download),
+                      const SizedBox(width: 12),
+                      _buildStatCard("Pending", pendingRequests.toString(), Colors.blue, Icons.schedule), // Pending requests
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                       _buildStatCard("Completed", completedRequests.toString(), Colors.green, Icons.check),
+                      const SizedBox(width: 12),
+                      _buildStatCard("Cancelled", cancelledRequests.toString(), Colors.orange, Icons.close), // Cancelled requests
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                ],
+              ),
+            ),
+          ),
+
+          // Requests List Section
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            sliver: SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (context, index) {
+                  return _buildRequestCard(_requestsData[index]);
+                },
+                childCount: _requestsData.length,
+              ),
+            ),
+          ),
+          const SliverToBoxAdapter(child: SizedBox(height: 20)),
+        ],
+      ),
+    );
+  }
+}
