@@ -3,9 +3,81 @@ import 'package:flutter/material.dart';
 class HistoryPage extends StatelessWidget {
   const HistoryPage({super.key});
 
+  // Helper function to build the list content for a tab
+  Widget _buildHistoryList({required bool isDonated, required List<_HistoryEntry> transactions}) {
+    // The list now iterates over all transactions to display the history log
+    return ListView.builder(
+      padding: const EdgeInsets.only(top: 8, left: 16, right: 16),
+      itemCount: transactions.length,
+      itemBuilder: (context, index) {
+        final item = transactions[index];
+        // Dynamic title based on tab (Receiver ID for Donated, Donor ID for Received)
+        final secondaryIdLabel = isDonated ? 'Receiver ID' : 'Donor ID';
+        
+        return Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Left Column: Date, Location, Qty
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Date: ${item.date} ${item.time}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                        const SizedBox(height: 4),
+                        Text('Location: ${item.location}', style: const TextStyle(color: Colors.black87, fontSize: 14)),
+                        const SizedBox(height: 4),
+                        Text('Qty: ${item.qty}', style: const TextStyle(color: Colors.red, fontSize: 14)),
+                      ],
+                    ),
+                  ),
+                  
+                  // Right Column: Receiver/Donor ID, Time, View Details (REMOVED)
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text('$secondaryIdLabel: ${item.id}', style: const TextStyle(color: Colors.black54, fontSize: 14)),
+                      const SizedBox(height: 4),
+                      Text('Date: ${item.date}', style: const TextStyle(color: Colors.black54, fontSize: 14)), // Displaying date on the right for spacing
+                      
+                      // The conditional block for "View Details >" is now removed entirely.
+                      
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1, thickness: 1, color: Colors.grey),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    // DefaultTabController manages the tabs and their views
+    // Defines the list of dummy transactions
+    final List<_HistoryEntry> donatedTransactions = [
+      _HistoryEntry(date: '11/12/18', time: '5:30', id: '#43EQ', qty: '0.6 ounces', location: '123, XYZ Apt'),
+      _HistoryEntry(date: '10/01/19', time: '6:00', id: '#1A2B', qty: '0.6 ounces', location: '456, ABC Rd'),
+      _HistoryEntry(date: '05/05/20', time: '10:15', id: '#7C8D', qty: '0.6 ounces', location: '789, PQR Blvd'),
+      _HistoryEntry(date: '12/12/20', time: '4:45', id: '#3I4J', qty: '0.6 ounces', location: '101, ABC Tower'),
+      _HistoryEntry(date: '06/06/19', time: '9:30', id: '#1G2H', qty: '0.6 ounces', location: '456, ABC Rd'),
+    ];
+    
+    final List<_HistoryEntry> receivedTransactions = [
+      _HistoryEntry(date: '01/01/18', time: '8:00', id: '#9E0F', qty: '0.6 ounces', location: '123, XYZ Apt'),
+      _HistoryEntry(date: '06/06/19', time: '9:30', id: '#1G2H', qty: '0.6 ounces', location: '456, ABC Rd'),
+      _HistoryEntry(date: '12/12/20', time: '4:45', id: '#3I4J', qty: '0.6 ounces', location: '789, PQR Blvd'),
+      _HistoryEntry(date: '10/01/19', time: '6:00', id: '#1A2B', qty: '0.6 ounces', location: '456, ABC Rd'),
+      _HistoryEntry(date: '05/05/20', time: '10:15', id: '#7C8D', qty: '0.6 ounces', location: '789, PQR Blvd'),
+    ];
+
+
     return DefaultTabController(
       length: 2,
       child: Scaffold(
@@ -34,7 +106,7 @@ class HistoryPage extends StatelessWidget {
                         child: IconButton(
                           icon: const Icon(Icons.arrow_back, color: Colors.white, size: 30),
                           onPressed: () {
-                            Navigator.pop(context); // Navigate back to the dashboard
+                            Navigator.pop(context); 
                           },
                         ),
                       ),
@@ -50,24 +122,26 @@ class HistoryPage extends StatelessWidget {
                       ),
                     ],
                   ),
-                  // Tab Bar
+                  // Tab Bar (Segmented Control Look)
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 40.0),
                     child: Container(
-                      height: 45,
+                      height: 40,
                       decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(5),
+                        border: Border.all(color: Colors.red, width: 1), // Outer red border
                       ),
                       child: TabBar(
                         indicatorSize: TabBarIndicatorSize.tab,
                         indicator: BoxDecoration(
-                          color: Colors.red,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: Colors.red),
+                          color: Colors.red, // Solid red background for selected tab
+                          borderRadius: BorderRadius.circular(5),
+                          border: Border.all(color: Colors.red, width: 0),
                         ),
                         labelColor: Colors.white,
                         unselectedLabelColor: Colors.red,
+                        labelStyle: const TextStyle(fontWeight: FontWeight.bold),
                         tabs: const [
                           Tab(text: "Donated"),
                           Tab(text: "Received"),
@@ -86,21 +160,13 @@ class HistoryPage extends StatelessWidget {
                   // Donated Tab Content
                   _buildHistoryList(
                     isDonated: true,
-                    transactions: [
-                      _HistoryEntry(date: '11/12/18', time: '5:30', id: '#43EQ', qty: '0.6 ounces', location: '123, XYZ Apt'),
-                      _HistoryEntry(date: '10/01/19', time: '6:00', id: '#1A2B', qty: '0.6 ounces', location: '456, ABC Rd'),
-                      _HistoryEntry(date: '05/05/20', time: '10:15', id: '#7C8D', qty: '0.6 ounces', location: '789, PQR Blvd'),
-                    ],
+                    transactions: donatedTransactions,
                   ),
                   
                   // Received Tab Content
                   _buildHistoryList(
                     isDonated: false,
-                    transactions: [
-                      _HistoryEntry(date: '01/01/18', time: '8:00', id: '#9E0F', qty: '0.6 ounces', location: '123, XYZ Apt'),
-                      _HistoryEntry(date: '06/06/19', time: '9:30', id: '#1G2H', qty: '0.6 ounces', location: '456, ABC Rd'),
-                      _HistoryEntry(date: '12/12/20', time: '4:45', id: '#3I4J', qty: '0.6 ounces', location: '789, PQR Blvd'),
-                    ],
+                    transactions: receivedTransactions,
                   ),
                 ],
               ),
@@ -108,54 +174,6 @@ class HistoryPage extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
-
-  // Helper function to build the list content for a tab
-  Widget _buildHistoryList({required bool isDonated, required List<_HistoryEntry> transactions}) {
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: transactions.length,
-      itemBuilder: (context, index) {
-        final item = transactions[index];
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 8.0),
-          child: Column(
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Date : ${item.date} ${item.time}', style: const TextStyle(fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 4),
-                      Text('Location : ${item.location}', style: const TextStyle(color: Colors.black87)),
-                      const SizedBox(height: 4),
-                      Text('Qty: ${item.qty}', style: const TextStyle(color: Colors.red)),
-                    ],
-                  ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(isDonated ? 'Receiver ID: ${item.id}' : 'Donor ID: ${item.id}', style: const TextStyle(color: Colors.black54)),
-                      const SizedBox(height: 8),
-                      if (!isDonated)
-                        TextButton(
-                          onPressed: () {
-                            // TODO: Implement View Details action
-                          },
-                          child: const Text('View Details >', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
-                        ),
-                    ],
-                  ),
-                ],
-              ),
-              const Divider(height: 20),
-            ],
-          ),
-        );
-      },
     );
   }
 }
