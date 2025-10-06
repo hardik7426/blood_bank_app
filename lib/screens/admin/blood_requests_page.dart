@@ -23,7 +23,7 @@ class BloodRequestsPage extends StatefulWidget {
 
 class _BloodRequestsPageState extends State<BloodRequestsPage> {
   // Use a List of Maps that can be modified via setState
-  List<Map<String, dynamic>> _requestsData = [
+  final List<Map<String, dynamic>> _requestsData = [
     {'name': 'Sarah Johnson', 'id': '#12847', 'bloodGroup': 'A+', 'hospital': 'City General Hospital', 'time': '2 hours ago', 'units': 2, 'status': 'pending'},
     {'name': 'Michael Chen', 'id': '#12848', 'bloodGroup': 'O-', 'hospital': 'Metro Medical Center', 'time': '4 hours ago', 'units': 1, 'status': 'pending'},
     {'name': 'Emma Rodriguez', 'id': '#12849', 'bloodGroup': 'B+', 'hospital': 'Regional Hospital', 'time': '6 hours ago', 'units': 3, 'status': 'completed'},

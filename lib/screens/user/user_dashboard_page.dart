@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart'; // 1. Import the package
 import 'package:blood_bank_app/screens/user/drawer_page.dart';
 import 'package:blood_bank_app/screens/user/request_donors_page.dart';
 import 'package:blood_bank_app/screens/user/blood_donation_page.dart';
@@ -20,15 +21,30 @@ class UserDashboardPage extends StatefulWidget {
 }
 
 class _UserDashboardPageState extends State<UserDashboardPage> {
-  // Use a GlobalKey to safely access the ScaffoldState and open the drawer
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
+  // 2. This function handles opening the phone's dialer
+  Future<void> _makePhoneCall(String phoneNumber) async {
+    final Uri launchUri = Uri(
+      scheme: 'tel',
+      path: phoneNumber,
+    );
+    if (await canLaunchUrl(launchUri)) {
+      await launchUrl(launchUri);
+    } else {
+      // Show an error if the call can't be made (e.g., on a tablet)
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not open phone dialer for $phoneNumber')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final bool canDonate = widget.age >= 18;
 
     return Scaffold(
-      key: _scaffoldKey, // Assign the key here
+      key: _scaffoldKey,
       backgroundColor: Colors.grey[200],
       drawer: DrawerPage(
         fullName: widget.fullName,
@@ -38,7 +54,7 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
       body: SafeArea(
         child: Column(
           children: [
-            // FIXED HEADER: This part will not scroll
+            // FIXED HEADER
             Container(
               height: 160,
               width: double.infinity,
@@ -76,7 +92,7 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
               ),
             ),
 
-            // SCROLLABLE CONTENT: This part will scroll
+            // SCROLLABLE CONTENT
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(16.0),
@@ -93,7 +109,7 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
                             isBloodGroup: true,
                           ),
                         ),
-                        const SizedBox(width: 16), // Corrected spacing
+                        const SizedBox(width: 16),
                         Expanded(
                           child: _infoCard(
                             title: "Donor Status",
@@ -112,9 +128,9 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.red,
-                        foregroundColor: Colors.white, // Set text color to white
+                        foregroundColor: Colors.white,
                         minimumSize: const Size.fromHeight(50),
-                         shape: RoundedRectangleBorder(
+                        shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
                         ),
                       ),
@@ -132,9 +148,9 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.red,
-                        foregroundColor: Colors.white, // Set text color to white
+                        foregroundColor: Colors.white,
                         minimumSize: const Size.fromHeight(50),
-                         shape: RoundedRectangleBorder(
+                        shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
                         ),
                       ),
@@ -150,8 +166,8 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
                     ),
 
                     const SizedBox(height: 24),
-
-                    // NEW: Company Contact Details Card
+                    
+                    // 3. The contact card is built here
                     _buildContactCard(),
                   ],
                 ),
@@ -163,7 +179,7 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
     );
   }
 
-  // Widget for info cards (Blood Group, Donor Status)
+  // Widget for info cards
   Widget _infoCard({
     required String title,
     required String content,
@@ -235,38 +251,46 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
     );
   }
 
-  // NEW: Widget for the company contact card
+  // Widget for the company contact card, now tappable
   Widget _buildContactCard() {
+    const phoneNumber = '+919727619671';
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-      child: const Padding(
-        padding: EdgeInsets.all(16.0),
-        child: Row(
-          children: [
-            Icon(Icons.call, color: Colors.red, size: 30),
-            SizedBox(width: 16),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "Emergency Contact",
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
+      child: InkWell( // 4. This makes the card tappable
+        borderRadius: BorderRadius.circular(14),
+        onTap: () {
+          // 5. On tap, the phone call function is called
+          _makePhoneCall(phoneNumber);
+        },
+        child: const Padding(
+          padding: EdgeInsets.all(16.0),
+          child: Row(
+            children: [
+              Icon(Icons.call, color: Colors.red, size: 30),
+              SizedBox(width: 16),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Emergency Contact",
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
                   ),
-                ),
-                SizedBox(height: 4),
-                Text(
-                  "+91 12345 67890",
-                  style: TextStyle(
-                    color: Colors.black54,
-                    fontSize: 14,
+                  SizedBox(height: 4),
+                  Text(
+                    phoneNumber,
+                    style: TextStyle(
+                      color: Colors.black54,
+                      fontSize: 14,
+                    ),
                   ),
-                ),
-              ],
-            ),
-          ],
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
