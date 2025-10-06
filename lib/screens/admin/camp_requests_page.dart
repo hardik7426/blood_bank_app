@@ -9,7 +9,7 @@ class CampRequestsPage extends StatefulWidget {
 
 class _CampRequestsPageState extends State<CampRequestsPage> {
   // NOTE: Use a mutable list so we can update the status/remove requests
-  List<Map<String, dynamic>> _campRequests = List.from(_initialCampRequests);
+  final List<Map<String, dynamic>> _campRequests = List.from(_initialCampRequests);
   int _total = _initialCampRequests.length;
   int _approved = 0;
   int _rejected = 0;
