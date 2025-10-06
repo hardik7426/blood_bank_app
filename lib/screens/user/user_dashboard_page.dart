@@ -122,7 +122,7 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
                         ),
                       );
                     },
-                    child: const Text('Request Donors'),
+                    child: const Text('Request Donors', style: TextStyle(color: Colors.black),),
                   ),
                   const SizedBox(height: 12),
                   ElevatedButton(
@@ -138,7 +138,7 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
                         ),
                       );
                     },
-                    child: const Text('Donate Blood'),
+                    child: const Text('Donate Blood', style: TextStyle(color: Colors.black),),
                     
                   ),
                 ],
@@ -211,7 +211,7 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
               ],
             ),
         ],
-      ),
-    );
-  }
+     ),
+);
+}
 }
