@@ -8,9 +8,7 @@ class CampRequestsPage extends StatefulWidget {
 }
 
 class _CampRequestsPageState extends State<CampRequestsPage> {
-  // NOTE: Use a mutable list so we can update the status/remove requests
   final List<Map<String, dynamic>> _campRequests = List.from(_initialCampRequests);
-  int _total = _initialCampRequests.length;
   int _approved = 0;
   int _rejected = 0;
 
@@ -20,41 +18,42 @@ class _CampRequestsPageState extends State<CampRequestsPage> {
     _updateCounts();
   }
 
-  // Recalculates the total, approved, and rejected counts
   void _updateCounts() {
     setState(() {
-      _total = _campRequests.length;
+      // For this UI, total should reflect all original requests, not just pending
       _approved = _campRequests.where((r) => r['status'] == 'Approved').length;
       _rejected = _campRequests.where((r) => r['status'] == 'Rejected').length;
     });
   }
 
-  // Handles the Approve and Reject actions
   void _handleAction(String id, String action) {
-    setState(() {
-      final index = _campRequests.indexWhere((r) => r['id'] == id);
-      if (index != -1) {
-        // Change the status of the request
-        _campRequests[index]['status'] = action;
-        
-        // Remove the item from the list to update the display
+    final index = _campRequests.indexWhere((r) => r['id'] == id);
+    if (index != -1) {
+      setState(() {
+        // We can just remove it from the pending list for this UI
         _campRequests.removeAt(index);
-        
-        // Optionally, re-add it if you want it to appear in a different section/state
-        // For this UI, we assume approved/rejected requests are processed and disappear from the main list.
-      }
-      _updateCounts();
-    });
-    
+
+        // Update counts based on the action
+        if (action == 'Approved') {
+          _approved++;
+        } else if (action == 'Rejected') {
+          _rejected++;
+        }
+      });
+    }
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Camp Request ID $id was $action.')),
     );
   }
 
   // --- UI Building ---
-  
+
   @override
   Widget build(BuildContext context) {
+    // IMPROVEMENT: Filter the list before building for better performance
+    final pendingRequests = _campRequests.where((r) => r['status'] == 'Pending').toList();
+
     return Scaffold(
       backgroundColor: Colors.grey[100],
       body: CustomScrollView(
@@ -81,16 +80,16 @@ class _CampRequestsPageState extends State<CampRequestsPage> {
               ),
             ),
           ),
-          
+
           // Stat Cards (Total, Approved, Rejected)
           SliverPadding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            sliver: SliverList(
-              delegate: SliverChildListDelegate(
-                [
+            sliver: SliverToBoxAdapter(
+              child: Column(
+                children: [
                   Row(
                     children: [
-                      _buildStatCard("Total", _total.toString(), const Color(0xFFF94747)),
+                      _buildStatCard("Pending", pendingRequests.length.toString(), const Color(0xFFF94747)),
                       const SizedBox(width: 10),
                       _buildStatCard("Approved", _approved.toString(), Colors.green),
                       const SizedBox(width: 10),
@@ -102,21 +101,17 @@ class _CampRequestsPageState extends State<CampRequestsPage> {
               ),
             ),
           ),
-          
+
           // Requests List
           SliverPadding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
             sliver: SliverList(
               delegate: SliverChildBuilderDelegate(
                 (context, index) {
-                  final request = _campRequests[index];
-                  // Only show requests that are pending approval
-                  if (request['status'] == 'Pending') {
-                    return _buildRequestCard(context, request);
-                  }
-                  return const SizedBox.shrink();
+                  final request = pendingRequests[index];
+                  return _buildRequestCard(context, request);
                 },
-                childCount: _campRequests.length,
+                childCount: pendingRequests.length, // Use the length of the filtered list
               ),
             ),
           ),
@@ -130,7 +125,7 @@ class _CampRequestsPageState extends State<CampRequestsPage> {
   Widget _buildStatCard(String title, String value, Color color) {
     return Expanded(
       child: Container(
-        height: 80,
+        height: 90, // <-- FIX: Increased height from 80 to 90 to solve overflow
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: color,
@@ -163,8 +158,6 @@ class _CampRequestsPageState extends State<CampRequestsPage> {
 
   // Helper Widget for individual Request Cards
   Widget _buildRequestCard(BuildContext context, Map<String, dynamic> request) {
-    bool showActions = request['status'] == 'Pending';
-    
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       elevation: 2,
@@ -204,61 +197,42 @@ class _CampRequestsPageState extends State<CampRequestsPage> {
               ],
             ),
             const SizedBox(height: 12),
-            
+
             // Details: Date and Location
             _buildDetailRow(Icons.calendar_today, request['dateRange']),
             _buildDetailRow(Icons.location_on, request['location']),
-            
+
             // Action Buttons
-            if (showActions)
-              Padding(
-                padding: const EdgeInsets.only(top: 16.0),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: () => _handleAction(request['id'], 'Approved'),
-                        icon: const Icon(Icons.check_circle_outline, size: 18),
-                        label: const Text('Approve'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green,
-                          foregroundColor: Colors.white,
-                        ),
+            Padding(
+              padding: const EdgeInsets.only(top: 16.0),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () => _handleAction(request['id'], 'Approved'),
+                      icon: const Icon(Icons.check_circle_outline, size: 18),
+                      label: const Text('Approve'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                        foregroundColor: Colors.white,
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () => _handleAction(request['id'], 'Rejected'),
-                        icon: const Icon(Icons.close, size: 18),
-                        label: const Text('Reject'),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.red,
-                          side: BorderSide(color: Colors.red.shade400),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-             
-            // View Details Button (for requests that might need review)
-            if (!showActions) // Assuming View Details button is for items that need manual review/details
-              Padding(
-                padding: const EdgeInsets.only(top: 16.0),
-                child: SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton.icon(
-                    onPressed: () { /* TODO: Navigate to view details */ },
-                    icon: const Icon(Icons.visibility, size: 18),
-                    label: const Text('View Details'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.blue,
-                      side: const BorderSide(color: Colors.blue),
                     ),
                   ),
-                ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => _handleAction(request['id'], 'Rejected'),
+                      icon: const Icon(Icons.close, size: 18),
+                      label: const Text('Reject'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.red,
+                        side: BorderSide(color: Colors.red.shade400),
+                      ),
+                    ),
+                  ),
+                ],
               ),
+            ),
           ],
         ),
       ),
@@ -280,8 +254,8 @@ class _CampRequestsPageState extends State<CampRequestsPage> {
   }
 }
 
-// --- Sample Data (Mutable for demonstration) ---
-List<Map<String, dynamic>> _initialCampRequests = [
+// --- Sample Data ---
+final List<Map<String, dynamic>> _initialCampRequests = [
   {
     'id': 'C101',
     'campName': 'City Hospital',
