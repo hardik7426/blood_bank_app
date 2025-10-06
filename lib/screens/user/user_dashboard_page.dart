@@ -38,7 +38,7 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
       body: SafeArea(
         child: Column(
           children: [
-            // Header with menu button that opens drawer
+            // FIXED HEADER: This part will not scroll
             Container(
               height: 160,
               width: double.infinity,
@@ -49,99 +49,112 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
                   bottomRight: Radius.circular(40),
                 ),
               ),
-              // increase size for better view
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              child: Row(
-                children: [
-                  // Menu Icon wired to the GlobalKey
-                  IconButton(
-                    icon: const Icon(Icons.menu, color: Colors.white, size: 30),
-                    onPressed: () {
-                      _scaffoldKey.currentState?.openDrawer();
-                    },
-                  ),
-                  const SizedBox(width: 12),
-                  Text(
-                    "Hello ${widget.fullName.split(' ').first}",
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 26,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 20),
-
-            // Info cards
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: _infoCard(
-                      title: "Blood Group",
-                      content: widget.bloodGroup,
-                      color: Colors.red,
-                      isBloodGroup: true,
-                    ),
-                  ),
-                  const SizedBox(width: 40),
-                  Expanded(
-                    child: _infoCard(
-                      title: "Donor Status",
-                      content: canDonate ? "Approved" : "Not eligible",
-                      color: canDonate ? Colors.green : Colors.red,
-                      isDonorStatus: true,
-                      canDonate: canDonate,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 20),
-
-            // Buttons
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red,
-                      minimumSize: const Size.fromHeight(49),
-                    ),
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const RequestDonorsPage(),
+                  Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.menu, color: Colors.white, size: 30),
+                        onPressed: () {
+                          _scaffoldKey.currentState?.openDrawer();
+                        },
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        "Hello ${widget.fullName.split(' ').first}",
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 26,
+                          fontWeight: FontWeight.bold,
                         ),
-                      );
-                    },
-                    child: const Text('Request Donors'),
-                  ),
-                  const SizedBox(height: 12),
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red,
-                      minimumSize: const Size.fromHeight(50),
-                    ),
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const BloodDonationPage(),
-                        ),
-                      );
-                    },
-                    child: const Text('Donate Blood'),
-                    
+                      ),
+                    ],
                   ),
                 ],
+              ),
+            ),
+
+            // SCROLLABLE CONTENT: This part will scroll
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  children: [
+                    // Info cards
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _infoCard(
+                            title: "Blood Group",
+                            content: widget.bloodGroup,
+                            color: Colors.red,
+                            isBloodGroup: true,
+                          ),
+                        ),
+                        const SizedBox(width: 16), // Corrected spacing
+                        Expanded(
+                          child: _infoCard(
+                            title: "Donor Status",
+                            content: canDonate ? "Approved" : "Not eligible",
+                            color: canDonate ? Colors.green : Colors.red,
+                            isDonorStatus: true,
+                            canDonate: canDonate,
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // Action Buttons
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                        foregroundColor: Colors.white, // Set text color to white
+                        minimumSize: const Size.fromHeight(50),
+                         shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const RequestDonorsPage(),
+                          ),
+                        );
+                      },
+                      child: const Text('Request Donors', style: TextStyle(fontSize: 16)),
+                    ),
+                    const SizedBox(height: 12),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                        foregroundColor: Colors.white, // Set text color to white
+                        minimumSize: const Size.fromHeight(50),
+                         shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const BloodDonationPage(),
+                          ),
+                        );
+                      },
+                      child: const Text('Donate Blood', style: TextStyle(fontSize: 16)),
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // NEW: Company Contact Details Card
+                    _buildContactCard(),
+                  ],
+                ),
               ),
             ),
           ],
@@ -150,6 +163,7 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
     );
   }
 
+  // Widget for info cards (Blood Group, Donor Status)
   Widget _infoCard({
     required String title,
     required String content,
@@ -163,17 +177,24 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.2),
+            spreadRadius: 1,
+            blurRadius: 5,
+            offset: const Offset(0, 3),
+          ),
+        ],
       ),
       padding: const EdgeInsets.all(12),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(title,
               style: TextStyle(
-                  fontWeight: FontWeight.bold, fontSize: 22, color: color)),
+                  fontWeight: FontWeight.bold, fontSize: 16, color: color)),
           const SizedBox(height: 10),
           if (isBloodGroup)
-            // Blood Drop Icon
             Stack(
               alignment: Alignment.center,
               children: [
@@ -188,7 +209,6 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
               ],
             ),
           if (isDonorStatus)
-            // Donor Status Icon
             Column(
               children: [
                 Container(
@@ -211,6 +231,43 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
               ],
             ),
         ],
+      ),
+    );
+  }
+
+  // NEW: Widget for the company contact card
+  Widget _buildContactCard() {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      child: const Padding(
+        padding: EdgeInsets.all(16.0),
+        child: Row(
+          children: [
+            Icon(Icons.call, color: Colors.red, size: 30),
+            SizedBox(width: 16),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "Emergency Contact",
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  "+91 12345 67890",
+                  style: TextStyle(
+                    color: Colors.black54,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
