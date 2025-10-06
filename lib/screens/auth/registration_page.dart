@@ -234,7 +234,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
 
                     // Blood Group Dropdown
                     DropdownButtonFormField<String>(
-                      value: _selectedBloodGroup,
+                      initialValue: _selectedBloodGroup,
                       decoration: _inputDecoration("Blood Group"),
                       items: [
                         'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'
