@@ -1,18 +1,68 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:intl/intl.dart';
 
-class HistoryPage extends StatelessWidget {
+class HistoryPage extends StatefulWidget {
   const HistoryPage({super.key});
 
+  @override
+  State<HistoryPage> createState() => _HistoryPageState();
+}
+
+class _HistoryPageState extends State<HistoryPage> {
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final String? _userId = FirebaseAuth.instance.currentUser?.uid;
+
+  // --- Stream Helpers ---
+
+  // Stream for donations (Users offering blood, approved by Admin)
+  Stream<QuerySnapshot> _donationHistoryStream() {
+    if (_userId == null) return const Stream.empty();
+    return _firestore.collection('donation_requests')
+        .where('userId', isEqualTo: _userId)
+        .where('status', isEqualTo: 'Approved') // Only approved records
+        .orderBy('timestamp', descending: true)
+        .snapshots();
+  }
+
+  // Stream for received requests (Users asking for blood, approved by Admin)
+  Stream<QuerySnapshot> _receivedHistoryStream() {
+    if (_userId == null) return const Stream.empty();
+    return _firestore.collection('donor_requests')
+        .where('userId', isEqualTo: _userId)
+        .where('status', isEqualTo: 'Approved') // Only approved records
+        .orderBy('timestamp', descending: true)
+        .snapshots();
+  }
+
+
   // Helper function to build the list content for a tab
-  Widget _buildHistoryList({required bool isDonated, required List<_HistoryEntry> transactions}) {
-    // The list now iterates over all transactions to display the history log
+  Widget _buildHistoryList({required bool isDonated, required QuerySnapshot snapshot}) {
+    final transactions = snapshot.docs;
+    final secondaryIdLabel = isDonated ? 'Receiver ID' : 'Donor ID';
+
+    if (transactions.isEmpty) {
+      return Center(
+        child: Text(
+          isDonated ? 'You have no confirmed donation records.' : 'You have no confirmed received records.',
+          style: const TextStyle(fontSize: 16, color: Colors.black54),
+        ),
+      );
+    }
+
     return ListView.builder(
       padding: const EdgeInsets.only(top: 8, left: 16, right: 16),
       itemCount: transactions.length,
       itemBuilder: (context, index) {
-        final item = transactions[index];
-        // Dynamic title based on tab (Receiver ID for Donated, Donor ID for Received)
-        final secondaryIdLabel = isDonated ? 'Receiver ID' : 'Donor ID';
+        final data = transactions[index].data() as Map<String, dynamic>;
+        
+        // Use consistent formatting for display
+        final date = data['dateOfDonation'] ?? 'N/A';
+        final location = data['location'] ?? (data['hospital'] ?? 'N/A');
+        
+        // Use document ID or a placeholder ID field
+        final recordId = transactions[index].id; 
         
         return Column(
           children: [
@@ -22,30 +72,25 @@ class HistoryPage extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Left Column: Date, Location, Qty
+                  // Left Column: Date, Location
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Date: ${item.date} ${item.time}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                        Text('Date: $date', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                         const SizedBox(height: 4),
-                        Text('Location: ${item.location}', style: const TextStyle(color: Colors.black87, fontSize: 14)),
-                        const SizedBox(height: 4),
-                        Text('Qty: ${item.qty}', style: const TextStyle(color: Colors.red, fontSize: 14)),
+                        Text('Location: $location', style: const TextStyle(color: Colors.black87, fontSize: 14)),
                       ],
                     ),
                   ),
                   
-                  // Right Column: Receiver/Donor ID, Time, View Details (REMOVED)
+                  // Right Column: Receiver/Donor ID, Blood Group
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      Text('$secondaryIdLabel: ${item.id}', style: const TextStyle(color: Colors.black54, fontSize: 14)),
+                      Text('$secondaryIdLabel: #${recordId.substring(0, 5).toUpperCase()}', style: const TextStyle(color: Colors.black54, fontSize: 14)),
                       const SizedBox(height: 4),
-                      Text('Date: ${item.date}', style: const TextStyle(color: Colors.black54, fontSize: 14)), // Displaying date on the right for spacing
-                      
-                      // The conditional block for "View Details >" is now removed entirely.
-                      
+                      Text('Blood: ${data['bloodGroup'] ?? 'N/A'}', style: const TextStyle(color: Colors.red, fontSize: 14, fontWeight: FontWeight.bold)),
                     ],
                   ),
                 ],
@@ -60,23 +105,9 @@ class HistoryPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Defines the list of dummy transactions
-    final List<_HistoryEntry> donatedTransactions = [
-      _HistoryEntry(date: '11/12/18', time: '5:30', id: '#43EQ', qty: '0.6 ounces', location: '123, XYZ Apt'),
-      _HistoryEntry(date: '10/01/19', time: '6:00', id: '#1A2B', qty: '0.6 ounces', location: '456, ABC Rd'),
-      _HistoryEntry(date: '05/05/20', time: '10:15', id: '#7C8D', qty: '0.6 ounces', location: '789, PQR Blvd'),
-      _HistoryEntry(date: '12/12/20', time: '4:45', id: '#3I4J', qty: '0.6 ounces', location: '101, ABC Tower'),
-      _HistoryEntry(date: '06/06/19', time: '9:30', id: '#1G2H', qty: '0.6 ounces', location: '456, ABC Rd'),
-    ];
-    
-    final List<_HistoryEntry> receivedTransactions = [
-      _HistoryEntry(date: '01/01/18', time: '8:00', id: '#9E0F', qty: '0.6 ounces', location: '123, XYZ Apt'),
-      _HistoryEntry(date: '06/06/19', time: '9:30', id: '#1G2H', qty: '0.6 ounces', location: '456, ABC Rd'),
-      _HistoryEntry(date: '12/12/20', time: '4:45', id: '#3I4J', qty: '0.6 ounces', location: '789, PQR Blvd'),
-      _HistoryEntry(date: '10/01/19', time: '6:00', id: '#1A2B', qty: '0.6 ounces', location: '456, ABC Rd'),
-      _HistoryEntry(date: '05/05/20', time: '10:15', id: '#7C8D', qty: '0.6 ounces', location: '789, PQR Blvd'),
-    ];
-
+    if (_userId == null) {
+      return const Scaffold(body: Center(child: Text("Please log in to view history.")));
+    }
 
     return DefaultTabController(
       length: 2,
@@ -105,9 +136,7 @@ class HistoryPage extends StatelessWidget {
                         left: 10,
                         child: IconButton(
                           icon: const Icon(Icons.arrow_back, color: Colors.white, size: 30),
-                          onPressed: () {
-                            Navigator.pop(context); 
-                          },
+                          onPressed: () => Navigator.pop(context), 
                         ),
                       ),
                       const Center(
@@ -130,19 +159,18 @@ class HistoryPage extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(5),
-                        border: Border.all(color: Colors.red, width: 1), // Outer red border
+                        border: Border.all(color: Colors.red, width: 1),
                       ),
-                      child: TabBar(
+                      child: const TabBar(
                         indicatorSize: TabBarIndicatorSize.tab,
                         indicator: BoxDecoration(
-                          color: Colors.red, // Solid red background for selected tab
-                          borderRadius: BorderRadius.circular(5),
-                          border: Border.all(color: Colors.red, width: 0),
+                          color: Colors.red,
+                          borderRadius: BorderRadius.all(Radius.circular(5)),
                         ),
                         labelColor: Colors.white,
                         unselectedLabelColor: Colors.red,
-                        labelStyle: const TextStyle(fontWeight: FontWeight.bold),
-                        tabs: const [
+                        labelStyle: TextStyle(fontWeight: FontWeight.bold),
+                        tabs: [
                           Tab(text: "Donated"),
                           Tab(text: "Received"),
                         ],
@@ -157,16 +185,38 @@ class HistoryPage extends StatelessWidget {
             Expanded(
               child: TabBarView(
                 children: [
-                  // Donated Tab Content
-                  _buildHistoryList(
-                    isDonated: true,
-                    transactions: donatedTransactions,
+                  // Donated Tab Content (Your offers that were approved)
+                  StreamBuilder<QuerySnapshot>(
+                    stream: _donationHistoryStream(),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+                      if (snapshot.hasError) {
+                        return Center(child: Text('Error: ${snapshot.error}'));
+                      }
+                      if (!snapshot.hasData) {
+                          return const Center(child: Text('No data found.'));
+                      }
+                      return _buildHistoryList(isDonated: true, snapshot: snapshot.data!);
+                    },
                   ),
                   
-                  // Received Tab Content
-                  _buildHistoryList(
-                    isDonated: false,
-                    transactions: receivedTransactions,
+                  // Received Tab Content (Your requests that were approved)
+                  StreamBuilder<QuerySnapshot>(
+                    stream: _receivedHistoryStream(),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+                      if (snapshot.hasError) {
+                        return Center(child: Text('Error: ${snapshot.error}'));
+                      }
+                      if (!snapshot.hasData) {
+                          return const Center(child: Text('No data found.'));
+                      }
+                      return _buildHistoryList(isDonated: false, snapshot: snapshot.data!);
+                    },
                   ),
                 ],
               ),
@@ -176,21 +226,4 @@ class HistoryPage extends StatelessWidget {
       ),
     );
   }
-}
-
-// Data model for history entries
-class _HistoryEntry {
-  final String date;
-  final String time;
-  final String id;
-  final String qty;
-  final String location;
-
-  _HistoryEntry({
-    required this.date,
-    required this.time,
-    required this.id,
-    required this.qty,
-    required this.location,
-  });
 }

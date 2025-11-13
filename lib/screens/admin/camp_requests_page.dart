@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-// --- Placeholders for Colors (Keep these in your file or move to a utils file) ---
+// --- Blood Group Colors (Define globally) ---
 const Map<String, Color> _bloodColors = {
   'A+': Color(0xFFF94747), 'A-': Color(0xFFF94747),
   'B+': Colors.blue, 'B-': Colors.blue,
@@ -10,7 +10,7 @@ const Map<String, Color> _bloodColors = {
 };
 
 
-class CampRequestsPage extends StatefulWidget {
+class CampRequestsPage extends StatefulWidget { 
   const CampRequestsPage({super.key});
 
   @override
@@ -20,15 +20,35 @@ class CampRequestsPage extends StatefulWidget {
 class _CampRequestsPageState extends State<CampRequestsPage> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  // --- CRUD Operations (Update Status) ---
-  Future<void> _updateRequestStatus(String docId, String newStatus, String campName) async {
+  // --- Notification Write Helper ---
+  Future<void> _sendNotification(String userId, String status, String campName) async {
+    await _firestore.collection('notifications').add({
+      'userId': userId,
+      'title': 'Camp Registration Status',
+      'body': 'Your registration for the $campName drive has been $status.',
+      'timestamp': FieldValue.serverTimestamp(),
+      'type': status, 
+    });
+  }
+
+  // --- CRUD Operations (Approve/Reject Camp Registration) ---
+  Future<void> _updateCampStatus(String docId, String newStatus, Map<String, dynamic> request) async {
     try {
+      // 1. Update status in the request collection
       await _firestore.collection('camp_registration_requests').doc(docId).update({
         'status': newStatus,
         'updated_at': FieldValue.serverTimestamp(),
       });
+      
+      // 2. SEND NOTIFICATION to the user
+      await _sendNotification(
+        request['userId'], 
+        newStatus, 
+        request['campName']
+      );
+
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Registration for $campName $newStatus!'), 
+        SnackBar(content: Text('Registration for ${request['campName']} $newStatus!'), 
                  backgroundColor: newStatus == 'Approved' ? Colors.green : Colors.red),
       );
     } catch (e) {
@@ -38,54 +58,12 @@ class _CampRequestsPageState extends State<CampRequestsPage> {
     }
   }
 
-  void _handleAction(String id, String campName, String action) {
-    _updateRequestStatus(id, action, campName);
+  void _handleAction(String docId, Map<String, dynamic> request, String action) {
+    _updateCampStatus(docId, action, request);
   }
 
-  // -------------------- UI Helper Widgets DEFINITIONS --------------------
-
-  Widget _buildStatCard(String title, String value, Color color, IconData icon) {
-    return Expanded(
-      child: Container(
-        height: 100,
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: color,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(value, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white)),
-                Icon(icon, color: Colors.white, size: 30),
-              ],
-            ),
-            Text(title, style: const TextStyle(fontSize: 14, color: Colors.white)),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDetailRow(IconData icon, String text, Color textColor) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
-      child: Row(
-        children: [
-          Icon(icon, size: 16, color: textColor.withOpacity(0.7)),
-          const SizedBox(width: 8),
-          Expanded(child: Text(text, style: TextStyle(color: textColor, fontSize: 14))),
-        ],
-      ),
-    );
-  }
-  
+  // --- Request Card Widget ---
   Widget _buildRequestCard(BuildContext context, Map<String, dynamic> request, String docId) {
-    // Reading data needed for the card
     final status = request['status'] ?? 'Pending';
     final campName = request['campName'] ?? 'Unknown Camp';
     final userName = request['userName'] ?? 'N/A';
@@ -104,24 +82,26 @@ class _CampRequestsPageState extends State<CampRequestsPage> {
         child: Row(
           children: [
             Expanded(
-              child: ElevatedButton(
-                onPressed: () => _handleAction(docId, campName, 'Approved'),
+              child: ElevatedButton.icon(
+                onPressed: () => _handleAction(docId, request, 'Approved'),
+                icon: const Icon(Icons.check_circle_outline, size: 18),
+                label: const Text('Approve'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.green, 
                   foregroundColor: Colors.white,
                 ),
-                child: const Text('Approve'),
               ),
             ),
             const SizedBox(width: 8),
             Expanded(
-              child: OutlinedButton(
-                onPressed: () => _handleAction(docId, campName, 'Rejected'),
+              child: OutlinedButton.icon(
+                onPressed: () => _handleAction(docId, request, 'Rejected'),
+                icon: const Icon(Icons.close, size: 18),
+                label: const Text('Reject'),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: Colors.red,
-                  side: const BorderSide(color: Colors.red),
+                  side: BorderSide(color: Colors.red.shade400),
                 ),
-                child: const Text('Reject'),
               ),
             ),
           ],
@@ -154,7 +134,7 @@ class _CampRequestsPageState extends State<CampRequestsPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header Row
+            // Header: Camp Name and Icon
             Row(
               children: [
                 const Icon(Icons.campaign, color: Color(0xFFF94747), size: 30),
@@ -163,8 +143,8 @@ class _CampRequestsPageState extends State<CampRequestsPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(campName, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: detailTextColor)), 
-                      Text("Registered By:", style: TextStyle(color: detailTextColor.withOpacity(0.7), fontSize: 13)),
+                      Text(campName, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: detailTextColor)),
+                      Text('User: $userName', style: TextStyle(color: detailTextColor.withOpacity(0.7), fontSize: 13)),
                     ],
                   ),
                 ),
@@ -179,12 +159,11 @@ class _CampRequestsPageState extends State<CampRequestsPage> {
                 )
               ],
             ),
-            const Divider(height: 20),
+            const Divider(height: 24),
             
             // Details
-            _buildDetailRow(Icons.person, "Name: $userName", detailTextColor),
-            _buildDetailRow(Icons.email, "Email: $userEmail", detailTextColor),
-            _buildDetailRow(Icons.access_time, "Requested: ${request['registration_date'] != null ? (request['registration_date'] as Timestamp).toDate().toString().split(' ')[0] : 'N/A'}", detailTextColor),
+            _buildDetailRow(Icons.email, userEmail, detailTextColor),
+            _buildDetailRow(Icons.date_range, "Registration Date: ${request['registration_date'] != null ? (request['registration_date'] as Timestamp).toDate().toString().split(' ')[0] : 'N/A'}", detailTextColor),
             
             buttonRow, // Action Buttons / Final Status
           ],
@@ -193,6 +172,47 @@ class _CampRequestsPageState extends State<CampRequestsPage> {
     );
   }
 
+  // Helper Widget for Detail Rows (Must be included)
+  Widget _buildDetailRow(IconData icon, String text, Color textColor) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: textColor.withOpacity(0.7)),
+          const SizedBox(width: 8),
+          Expanded(child: Text(text, style: TextStyle(color: textColor, fontSize: 14))),
+        ],
+      ),
+    );
+  }
+
+  // Helper Widget for Stat Cards (Must be included)
+  Widget _buildStatCard(String title, String value, Color color, IconData icon) {
+    return Expanded(
+      child: Container(
+        height: 100,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(value, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white)),
+                Icon(icon, color: Colors.white, size: 30),
+              ],
+            ),
+            Text(title, style: const TextStyle(fontSize: 14, color: Colors.white)),
+          ],
+        ),
+      ),
+    );
+  }
 
   // --- Main Build Method (StreamBuilder) ---
   @override
@@ -200,7 +220,6 @@ class _CampRequestsPageState extends State<CampRequestsPage> {
     return Scaffold(
       backgroundColor: Colors.grey[100],
       body: StreamBuilder<QuerySnapshot>(
-        // TARGETS 'camp_registration_requests' collection
         stream: _firestore.collection('camp_registration_requests').orderBy('registration_date', descending: true).snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -210,10 +229,7 @@ class _CampRequestsPageState extends State<CampRequestsPage> {
             return Center(child: Text('Error loading requests: ${snapshot.error}'));
           }
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return const Center(child: Padding(
-              padding: EdgeInsets.all(20.0),
-              child: Text('No camp registration requests found.', textAlign: TextAlign.center),
-            ));
+            return const SliverToBoxAdapter(child: Center(child: Padding(padding: EdgeInsets.only(top: 50), child: Text('No camp registration requests found.'))));
           }
 
           final requestsList = snapshot.data!.docs;
@@ -221,7 +237,7 @@ class _CampRequestsPageState extends State<CampRequestsPage> {
           final totalRequests = requestsList.length;
           final approvedRequests = requestsList.where((doc) => doc['status'] == 'Approved').length;
           final rejectedRequests = requestsList.where((doc) => doc['status'] == 'Rejected').length;
-          final pendingRequests = requestsList.where((doc) => doc['status'] == 'Pending').length; // Ensure case matches Firestore
+          final pendingRequests = requestsList.where((doc) => doc['status'] == 'Pending').length; 
 
 
           return CustomScrollView(

@@ -40,11 +40,11 @@ class _BloodRequestsPageState extends State<BloodRequestsPage> {
         'updated_at': FieldValue.serverTimestamp(),
       });
       
-      // 2. SEND NOTIFICATION to the user (Using required fields from the request map)
+      // 2. SEND NOTIFICATION to the user
       await _sendNotification(
         request['userId'], 
         newStatus, 
-        request['name'] ?? 'Donor' // Use 'name' field
+        request['name'] ?? 'Donor'
       );
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -58,7 +58,6 @@ class _BloodRequestsPageState extends State<BloodRequestsPage> {
     }
   }
 
-  // NOTE: Modified calls to pass the entire request map for data retrieval
   void _approveOffer(String docId, Map<String, dynamic> request) => _updateDonationOfferStatus(docId, 'Approved', request);
   void _rejectOffer(String docId, Map<String, dynamic> request) => _updateDonationOfferStatus(docId, 'Rejected', request);
   
@@ -218,7 +217,6 @@ class _BloodRequestsPageState extends State<BloodRequestsPage> {
     return Scaffold(
       backgroundColor: Colors.grey[100],
       body: StreamBuilder<QuerySnapshot>(
-        // TARGETS 'donation_requests' collection
         stream: _firestore.collection('donation_requests').orderBy('timestamp', descending: true).snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {

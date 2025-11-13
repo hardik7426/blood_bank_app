@@ -20,14 +20,33 @@ class DonorRequestsPage extends StatefulWidget {
 class _DonorRequestsPageState extends State<DonorRequestsPage> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
+  // --- Notification Write Helper ---
+  Future<void> _sendNotification(String userId, String status, String patientName) async {
+      await _firestore.collection('notifications').add({
+        'userId': userId,
+        'title': 'Donor Request Status',
+        'body': 'Your request for blood for patient $patientName has been $status by the blood bank.',
+        'timestamp': FieldValue.serverTimestamp(),
+        'type': status, 
+      });
+  }
+
   // --- CRUD Operations ---
-  Future<void> _updateRequestStatus(String docId, String newStatus) async {
+  Future<void> _updateRequestStatus(String docId, String newStatus, Map<String, dynamic> request) async {
     try {
-      // TARGETS 'donor_requests' collection and updates status
+      // 1. Update status in the request collection
       await _firestore.collection('donor_requests').doc(docId).update({
         'status': newStatus,
         'updated_at': FieldValue.serverTimestamp(),
       });
+      
+      // 2. SEND NOTIFICATION to the user
+      await _sendNotification(
+        request['userId'], 
+        newStatus, 
+        request['patientName'] ?? 'Patient'
+      );
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Request marked as $newStatus!"), 
                  backgroundColor: newStatus == 'Approved' ? Colors.green : Colors.red),
@@ -39,8 +58,8 @@ class _DonorRequestsPageState extends State<DonorRequestsPage> {
     }
   }
 
-  void _approveRequest(String docId) => _updateRequestStatus(docId, 'Approved');
-  void _rejectRequest(String docId) => _updateRequestStatus(docId, 'Rejected');
+  void _approveRequest(String docId, Map<String, dynamic> request) => _updateRequestStatus(docId, 'Approved', request);
+  void _rejectRequest(String docId, Map<String, dynamic> request) => _updateRequestStatus(docId, 'Rejected', request);
   
   // --- Request Card Widget ---
   Widget _buildRequestCard(Map<String, dynamic> request, String docId) {
@@ -61,22 +80,16 @@ class _DonorRequestsPageState extends State<DonorRequestsPage> {
           children: [
             Expanded(
               child: ElevatedButton(
-                onPressed: () => _approveRequest(docId),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green, 
-                  foregroundColor: Colors.white,
-                ),
+                onPressed: () => _approveRequest(docId, request), 
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
                 child: const Text('Approve'),
               ),
             ),
             const SizedBox(width: 8),
             Expanded(
               child: OutlinedButton(
-                onPressed: () => _rejectRequest(docId),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.red,
-                  side: const BorderSide(color: Colors.red),
-                ),
+                onPressed: () => _rejectRequest(docId, request), 
+                style: OutlinedButton.styleFrom(foregroundColor: Colors.red, side: const BorderSide(color: Colors.red)),
                 child: const Text('Reject'),
               ),
             ),
@@ -88,15 +101,11 @@ class _DonorRequestsPageState extends State<DonorRequestsPage> {
         padding: const EdgeInsets.only(top: 8.0),
         child: Text(
           'Status: ${status.toUpperCase()}',
-          style: TextStyle(
-            color: isApproved ? Colors.green : Colors.red,
-            fontWeight: FontWeight.bold,
-            fontSize: 14,
-          ),
+          style: TextStyle(color: isApproved ? Colors.green : Colors.red, fontWeight: FontWeight.bold, fontSize: 14),
         ),
       );
     }
-
+    
     return Card(
       color: cardColor,
       margin: const EdgeInsets.only(bottom: 16),
@@ -238,8 +247,7 @@ class _DonorRequestsPageState extends State<DonorRequestsPage> {
               SliverPadding(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                 sliver: SliverList(
-                  delegate: SliverChildListDelegate(
-                    [
+                  delegate: SliverChildListDelegate([
                       Row(
                         children: [
                           _buildStatCard("Total Requests", totalRequests.toString(), const Color(0xFFF94747), Icons.file_download),

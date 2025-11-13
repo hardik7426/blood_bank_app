@@ -106,6 +106,7 @@ class MessagesPage extends StatelessWidget {
             child: userId == null
                 ? const Center(child: Text("Please log in to see messages."))
                 : StreamBuilder<QuerySnapshot>(
+                    // FIX: This query requires an index on userId and timestamp, which you must create in Firebase
                     stream: FirebaseFirestore.instance
                         .collection('notifications')
                         .where('userId', isEqualTo: userId)
@@ -116,7 +117,11 @@ class MessagesPage extends StatelessWidget {
                         return const Center(child: CircularProgressIndicator());
                       }
                       if (snapshot.hasError) {
-                        return Center(child: Text('Error: ${snapshot.error}'));
+                        // Display detailed error if indexing failed
+                        return Center(child: Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Text('Error loading messages. Did you create the required Firebase index? Error: ${snapshot.error}', style: const TextStyle(color: Colors.red)),
+                          ));
                       }
                       if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                         return const Center(child: Text('No new messages.'));
@@ -133,6 +138,7 @@ class MessagesPage extends StatelessWidget {
                           final dateString = DateFormat('dd/MM/yy HH:mm').format(timestamp.toDate());
                           
                           return _MessageItem(
+                            // All admin pages now write notifications with "title" and "body"
                             title: data['title'] ?? 'Notification',
                             subtitle: data['body'] ?? 'No message content.',
                             date: dateString,
@@ -180,7 +186,8 @@ class _MessageItem extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 10),
-              Text(date, style: const TextStyle(fontSize: 12, color: Colors.black54)),
+              // Display date and time in a single row item
+              Text(date, style: const TextStyle(fontSize: 12, color: Colors.black54)), 
             ],
           ),
           const Divider(height: 20, thickness: 1, color: Colors.grey),
