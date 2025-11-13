@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class RequestDonorsPage extends StatefulWidget {
   const RequestDonorsPage({super.key});
@@ -9,12 +11,17 @@ class RequestDonorsPage extends StatefulWidget {
 
 class _RequestDonorsPageState extends State<RequestDonorsPage> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _locationController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   String? _selectedBloodGroup;
+  
+  bool _isLoading = false;
 
+  // You must define dispose() method here
   @override
   void dispose() {
     _nameController.dispose();
@@ -23,14 +30,78 @@ class _RequestDonorsPageState extends State<RequestDonorsPage> {
     super.dispose();
   }
 
-  void _submitRequest() {
-    if (_formKey.currentState!.validate()) {
+  // Helper for Input Decoration (FIX: Moved inside State class for accessibility)
+  InputDecoration _inputDecoration(String hint) {
+    return InputDecoration(
+      hintText: hint,
+      filled: true,
+      fillColor: Colors.white,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: BorderSide.none,
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(color: Colors.red, width: 2),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(color: Colors.red, width: 2),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(color: Colors.red, width: 2),
+      ),
+      contentPadding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
+    );
+  }
+
+  // -------------------- Firebase Submission --------------------
+  void _submitRequest() async {
+    if (!_formKey.currentState!.validate() || _selectedBloodGroup == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("✅ Donor request submitted for $_selectedBloodGroup")),
+        const SnackBar(content: Text("Please fill all required fields."), backgroundColor: Colors.red),
       );
+      return;
+    }
+
+    final user = _auth.currentUser;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("You must be logged in to submit a request."), backgroundColor: Colors.red),
+      );
+      return;
+    }
+
+    setState(() { _isLoading = true; });
+
+    try {
+      final requestData = {
+        'userId': user.uid,
+        'patientName': _nameController.text.trim(),
+        'bloodGroup': _selectedBloodGroup!,
+        'location': _locationController.text.trim(),
+        'contactPhone': _phoneController.text.trim(),
+        'status': 'Pending', 
+        'timestamp': FieldValue.serverTimestamp(),
+      };
+
+      await _firestore.collection('donor_requests').add(requestData);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("✅ Donor request submitted successfully!"), backgroundColor: Colors.green),
+      );
+      
+      Navigator.pop(context);
+
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Failed to submit request: $e"), backgroundColor: Colors.red));
+    } finally {
+      setState(() { _isLoading = false; });
     }
   }
 
+  // -------------------- Build UI --------------------
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -83,45 +154,31 @@ class _RequestDonorsPageState extends State<RequestDonorsPage> {
                 key: _formKey,
                 child: Column(
                   children: [
-                    // Name
+                    // Patient Name
                     TextFormField(
                       controller: _nameController,
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Please enter patient name';
-                        }
-                        return null;
-                      },
-                      decoration: _inputDecoration("Patient Name"),
+                      validator: (value) => value == null || value.trim().isEmpty ? 'Please enter patient name' : null,
+                      decoration: _inputDecoration("Patient Name"), // FIX: Now accessible
+                      autovalidateMode: AutovalidateMode.onUserInteraction,
                     ),
                     const SizedBox(height: 20),
 
-                    // Location
+                    // Hospital / Location
                     TextFormField(
                       controller: _locationController,
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Please enter hospital/location';
-                        }
-                        return null;
-                      },
+                      validator: (value) => value == null || value.trim().isEmpty ? 'Please enter hospital/location' : null,
                       decoration: _inputDecoration("Hospital / Location"),
+                      autovalidateMode: AutovalidateMode.onUserInteraction,
                     ),
                     const SizedBox(height: 20),
 
-                    // Phone
+                    // Contact Phone
                     TextFormField(
                       controller: _phoneController,
                       keyboardType: TextInputType.phone,
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Please enter contact number';
-                        } else if (!RegExp(r'^[0-9]{10}$').hasMatch(value)) {
-                          return 'Enter valid 10-digit phone number';
-                        }
-                        return null;
-                      },
+                      validator: (value) => value == null || value.trim().isEmpty || !RegExp(r'^[0-9]{10}$').hasMatch(value) ? 'Enter valid 10-digit phone number' : null,
                       decoration: _inputDecoration("Contact Number"),
+                      autovalidateMode: AutovalidateMode.onUserInteraction,
                     ),
                     const SizedBox(height: 20),
 
@@ -134,27 +191,21 @@ class _RequestDonorsPageState extends State<RequestDonorsPage> {
                       ),
                       child: DropdownButtonHideUnderline(
                         child: DropdownButtonFormField<String>(
-                          decoration: const InputDecoration(
-                            border: InputBorder.none,
-                          ),
+                          decoration: const InputDecoration(border: InputBorder.none),
                           isExpanded: true,
-                          hint: const Text("Select Blood Group"),
-                          value: _selectedBloodGroup,
-                          items: <String>[
-                            'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'
-                          ].map((String value) {
-                            return DropdownMenuItem<String>(
-                              value: value,
-                              child: Text(value),
-                            );
+                          hint: const Text("Select Required Blood Group"),
+                          initialValue: _selectedBloodGroup,
+                          items: <String>['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']
+                              .map((String value) {
+                            return DropdownMenuItem<String>(value: value, child: Text(value));
                           }).toList(),
                           onChanged: (String? newValue) {
                             setState(() {
                               _selectedBloodGroup = newValue;
                             });
                           },
-                          validator: (value) =>
-                              value == null ? 'Please select blood group' : null,
+                          validator: (value) => value == null ? 'Please select blood group' : null,
+                          autovalidateMode: AutovalidateMode.onUserInteraction,
                         ),
                       ),
                     ),
@@ -162,19 +213,16 @@ class _RequestDonorsPageState extends State<RequestDonorsPage> {
 
                     // Submit Button
                     ElevatedButton(
-                      onPressed: _submitRequest,
+                      onPressed: _isLoading ? null : _submitRequest, 
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red,
-                        foregroundColor: Colors.white,
-                        minimumSize: const Size(double.infinity, 50),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
+                        backgroundColor: Colors.red, 
+                        foregroundColor: Colors.white, 
+                        minimumSize: const Size(double.infinity, 50), 
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       ),
-                      child: const Text(
-                        "Submit Request",
-                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                      ),
+                      child: _isLoading
+                          ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                          : const Text("Submit Request", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                     ),
                   ],
                 ),
@@ -183,23 +231,6 @@ class _RequestDonorsPageState extends State<RequestDonorsPage> {
           ],
         ),
       ),
-    );
-  }
-
-  InputDecoration _inputDecoration(String hint) {
-    return InputDecoration(
-      hintText: hint,
-      filled: true,
-      fillColor: Colors.white,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: BorderSide.none,
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: Colors.red, width: 2),
-      ),
-      contentPadding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
     );
   }
 }

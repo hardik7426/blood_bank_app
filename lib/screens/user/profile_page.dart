@@ -1,107 +1,87 @@
-// profile_page.dart
 import 'package:flutter/material.dart';
-import 'package:blood_bank_app/screens/user/edit_profile_page.dart'; // Ensure correct import
+import 'package:blood_bank_app/screens/user/edit_profile_page.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ProfilePage extends StatefulWidget {
-  // All fields are now passed into the widget's constructor
-  final String fullName;
-  final String email;
-  final String phone;
-  final String location;
-  final int donations;
-  final String bloodGroup;
-  final String gender;
-  final String dob;
-  final int age;
-  final String lastDonation;
-
-  const ProfilePage({
-    super.key,
-    this.fullName = 'User name',
-    this.email = 'bloodbanks@gmail.com',
-    this.phone = '1234567890',
-    this.location = 'India,Gujrat ',
-    this.donations = 5,
-    this.bloodGroup = 'A+',
-    this.gender = 'Male',
-    this.dob = '02/02/2000',
-    this.age = 19,
-    this.lastDonation = '3/9/2024',
-  });
+  const ProfilePage({super.key, required String fullName});
 
   @override
   State<ProfilePage> createState() => _ProfilePageState();
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  // Convert fields to state variables to hold dynamic data
-  late String _fullName;
-  late String _email;
-  late String _phone;
-  late String _location;
-  late int _donations;
-  late String _bloodGroup;
-  late String _gender;
-  late String _dob;
-  late int _age;
-  late String _lastDonation;
+  // Use state variables to hold dynamic data fetched from Firestore
+  Map<String, dynamic> _userData = {};
+  bool _isLoading = true;
+
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   @override
   void initState() {
     super.initState();
-    // Initialize state variables with constructor values
-    _fullName = widget.fullName;
-    _email = widget.email;
-    _phone = widget.phone;
-    _location = widget.location;
-    _donations = widget.donations;
-    _bloodGroup = widget.bloodGroup;
-    _gender = widget.gender;
-    _dob = widget.dob;
-    _age = widget.age;
-    _lastDonation = widget.lastDonation;
+    _fetchUserProfile();
   }
 
-  // Function to handle navigation and state update
+  // --- 1. FETCH USER DATA FROM FIRESTORE ---
+  Future<void> _fetchUserProfile() async {
+    final user = _auth.currentUser;
+    if (user != null) {
+      try {
+        final userDoc = await _firestore.collection('users').doc(user.uid).get();
+        if (userDoc.exists) {
+          setState(() {
+            _userData = userDoc.data()!;
+            _isLoading = false;
+          });
+        } else {
+          // Profile document doesn't exist yet
+          setState(() {
+            _isLoading = false;
+          });
+        }
+      } catch (e) {
+        setState(() {
+          _isLoading = false;
+        });
+        print("Error fetching profile: $e");
+      }
+    }
+  }
+
+  // --- 2. NAVIGATION TO EDIT PAGE ---
   void _navigateToEditProfile(BuildContext context) async {
-    // Navigate and await result (the updated data map)
+    final user = _auth.currentUser;
+    if (user == null || _userData.isEmpty) return;
+
+    // Navigate and await the result (the updated data map)
     final updatedData = await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => EditProfilePage(
-          fullName: _fullName,
-          email: _email,
-          phone: _phone,
-          location: _location,
-          donations: _donations,
-          bloodGroup: _bloodGroup,
-          gender: _gender,
-          dob: _dob,
-          age: _age,
-          lastDonation: _lastDonation,
+          // Pass the CURRENT data loaded from Firestore
+          initialData: _userData,
         ),
       ),
     );
 
-    // Check if data was returned (user clicked Save Changes)
+    // If data was returned (user clicked Save Changes in EditProfilePage)
     if (updatedData != null && updatedData is Map<String, dynamic>) {
-      setState(() {
-        _fullName = updatedData['fullName'];
-        _email = updatedData['email'];
-        _phone = updatedData['phone'];
-        _location = updatedData['location'];
-        _donations = updatedData['donations'];
-        _bloodGroup = updatedData['bloodGroup'];
-        _gender = updatedData['gender'];
-        _dob = updatedData['dob'];
-        _age = updatedData['age'];
-        _lastDonation = updatedData['lastDonation'];
-      });
+      // Re-fetch data to reflect changes saved to Firestore
+      _fetchUserProfile(); 
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Scaffold(appBar: PreferredSize(preferredSize: const Size.fromHeight(56), child: AppBar(backgroundColor: const Color(0xFFF94747))), body: const Center(child: CircularProgressIndicator(color: Colors.red)));
+    }
+
+    final String fullName = _userData['name'] ?? 'User Name';
+    final String email = _userData['email'] ?? 'N/A';
+
     return Scaffold(
       backgroundColor: Colors.grey[100],
       appBar: AppBar(
@@ -112,35 +92,11 @@ class _ProfilePageState extends State<ProfilePage> {
       body: Column(
         children: [
           const SizedBox(height: 20),
-
-          // Profile Picture
-          Stack(
-            alignment: Alignment.bottomCenter,
-            children: [
-              Container(
-                width: 140,
-                height: 140,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white,
-                  border: Border.all(color: Colors.red, width: 3),
-                ),
-                child: ClipOval(
-                  child: Image.asset(
-                    'assets/images/logo.png',
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) =>
-                        const Icon(Icons.person, size: 100, color: Colors.grey),
-                  ),
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 10),
+          
+          // --- Removed Profile Picture Section ---
 
           Text(
-            _fullName, // Use state variable
+            fullName,
             style: const TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.bold,
@@ -148,7 +104,7 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
           ),
           Text(
-            _email, // Use state variable
+            email,
             style: const TextStyle(fontSize: 16, color: Colors.black54),
           ),
           const SizedBox(height: 20),
@@ -159,17 +115,19 @@ class _ProfilePageState extends State<ProfilePage> {
                 padding: const EdgeInsets.symmetric(horizontal: 40.0),
                 child: Column(
                   children: [
-                    // Use state variables for detail rows
-                    _ProfileDetailRow(label: "Phone", value: _phone),
-                    _ProfileDetailRow(label: "Location", value: _location),
-                    _ProfileDetailRow(label: "Donations", value: _donations.toString()),
-                    _ProfileDetailRow(label: "Blood Group", value: _bloodGroup),
-                    _ProfileDetailRow(label: "Gender", value: _gender),
-                    _ProfileDetailRow(label: "DOB", value: _dob),
-                    _ProfileDetailRow(label: "Age", value: _age.toString()),
-                    _ProfileDetailRow(label: "Last Donation", value: _lastDonation),
+                    // Display details using fetched data
+                    _ProfileDetailRow(label: "Phone", value: _userData['phone'] ?? 'N/A'),
+                    _ProfileDetailRow(label: "Location", value: _userData['location'] ?? 'N/A'),
+                    _ProfileDetailRow(label: "Donations", value: (_userData['donations'] ?? 0).toString()),
+                    _ProfileDetailRow(label: "Blood Group", value: _userData['blood_group'] ?? 'N/A'),
+                    _ProfileDetailRow(label: "Gender", value: _userData['gender'] ?? 'N/A'),
+                    _ProfileDetailRow(label: "DOB", value: _userData['date_of_birth'] ?? 'N/A'),
+                    _ProfileDetailRow(label: "Age", value: (_userData['age'] ?? 0).toString()),
+                    _ProfileDetailRow(label: "Last Donation", value: _userData['last_donation'] ?? 'N/A'),
+
                     const SizedBox(height: 30),
 
+                    // Edit Profile Button
                     ElevatedButton(
                       onPressed: () => _navigateToEditProfile(context), // Call the state handler
                       style: ElevatedButton.styleFrom(
@@ -185,6 +143,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                       ),
                     ),
+                    const SizedBox(height: 20),
                   ],
                 ),
               ),

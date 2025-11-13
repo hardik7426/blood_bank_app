@@ -5,13 +5,14 @@ import 'package:blood_bank_app/screens/admin/manage_camps_page.dart';
 import 'package:flutter/material.dart';
 import 'package:blood_bank_app/screens/auth/login_page.dart';
 import 'package:blood_bank_app/screens/admin/add_new_camp_page.dart';
-import 'package:blood_bank_app/screens/admin/blood_requests_page.dart';
+// FIX: Imports for the two distinct request pages:
+import 'package:blood_bank_app/screens/admin/blood_requests_page.dart'; // Handles Donation OFFERS
+import 'package:blood_bank_app/screens/admin/view_request_page.dart'; // Handles DONOR REQUESTS (Patients)
 import 'package:blood_bank_app/screens/admin/user_management_page.dart';
 
 class AdminDashboardPage extends StatelessWidget {
   const AdminDashboardPage({super.key});
 
-  // Handle logout -> clears stack & redirects to LoginPage
   void _handleLogout(BuildContext context) {
     Navigator.pushAndRemoveUntil(
       context,
@@ -20,8 +21,8 @@ class AdminDashboardPage extends StatelessWidget {
     );
   }
 
-  // Reusable Stat Card
   Widget _buildStatCard(String title, String value, IconData icon, Color color) {
+    // ... (implementation unchanged) ...
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       elevation: 3,
@@ -53,9 +54,9 @@ class AdminDashboardPage extends StatelessWidget {
     );
   }
 
-  // Reusable Module Item
   Widget _buildModuleItem(
       IconData icon, String title, String subtitle, VoidCallback onTap) {
+    // ... (implementation unchanged) ...
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 6),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -99,7 +100,7 @@ class AdminDashboardPage extends StatelessWidget {
                 style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
             const SizedBox(height: 16),
 
-            // Stats
+            // Stats Grid (omitted for brevity)
             GridView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
@@ -159,9 +160,10 @@ class AdminDashboardPage extends StatelessWidget {
                 Expanded(
                   child: OutlinedButton.icon(
                     onPressed: () {
+                      // TARGET: DonorRequestsPage (View Requests)
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (_) => const BloodRequestsPage()),
+                        MaterialPageRoute(builder: (_) => const DonorRequestsPage()),
                       );
                     },
                     icon: const Icon(Icons.list_alt, color: Colors.red),
@@ -190,17 +192,18 @@ class AdminDashboardPage extends StatelessWidget {
             }),
             _buildModuleItem(Icons.favorite, "Blood Donation Requests",
                 "89 pending requests", () {
+              // TARGET: BloodRequestsPage (Donation Offers Module Item)
               Navigator.push(context,
                   MaterialPageRoute(builder: (_) => const BloodRequestsPage()));
             }),
             _buildModuleItem(Icons.inventory, "Inventory Management",
                 "Blood stock levels", () {
-                  Navigator.push(context,
+              Navigator.push(context,
                   MaterialPageRoute(builder: (_) => const InventoryPage()));
             }),
             _buildModuleItem(Icons.history, "Donor History",
                 "View donation records", () {
-                  Navigator.push(context,
+              Navigator.push(context,
                   MaterialPageRoute(builder: (_) => const DonorHistoryPage()));
             }),
             _buildModuleItem(Icons.event, "Manage Camps",
@@ -210,7 +213,7 @@ class AdminDashboardPage extends StatelessWidget {
             }),
             _buildModuleItem(Icons.local_hospital, "Camp Blood Requests",
                 "Camp donation requests", () {
-                  Navigator.push(context,
+              Navigator.push(context,
                   MaterialPageRoute(builder: (_) => const CampRequestsPage()));
             }),
 

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-// --- Placeholders for Colors (Keep these in your file or move to a utils file) ---
+// --- Blood Group Colors (Define globally) ---
 const Map<String, Color> _bloodColors = {
   'A+': Color(0xFFF94747), 'A-': Color(0xFFF94747),
   'B+': Colors.blue, 'B-': Colors.blue,
@@ -10,25 +10,26 @@ const Map<String, Color> _bloodColors = {
 };
 
 
-class CampRequestsPage extends StatefulWidget {
-  const CampRequestsPage({super.key});
+class DonorRequestsPage extends StatefulWidget {
+  const DonorRequestsPage({super.key});
 
   @override
-  State<CampRequestsPage> createState() => _CampRequestsPageState();
+  State<DonorRequestsPage> createState() => _DonorRequestsPageState();
 }
 
-class _CampRequestsPageState extends State<CampRequestsPage> {
+class _DonorRequestsPageState extends State<DonorRequestsPage> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  // --- CRUD Operations (Update Status) ---
-  Future<void> _updateRequestStatus(String docId, String newStatus, String campName) async {
+  // --- CRUD Operations ---
+  Future<void> _updateRequestStatus(String docId, String newStatus) async {
     try {
-      await _firestore.collection('camp_registration_requests').doc(docId).update({
+      // TARGETS 'donor_requests' collection and updates status
+      await _firestore.collection('donor_requests').doc(docId).update({
         'status': newStatus,
         'updated_at': FieldValue.serverTimestamp(),
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Registration for $campName $newStatus!'), 
+        SnackBar(content: Text("Request marked as $newStatus!"), 
                  backgroundColor: newStatus == 'Approved' ? Colors.green : Colors.red),
       );
     } catch (e) {
@@ -38,12 +39,131 @@ class _CampRequestsPageState extends State<CampRequestsPage> {
     }
   }
 
-  void _handleAction(String id, String campName, String action) {
-    _updateRequestStatus(id, action, campName);
+  void _approveRequest(String docId) => _updateRequestStatus(docId, 'Approved');
+  void _rejectRequest(String docId) => _updateRequestStatus(docId, 'Rejected');
+  
+  // --- Request Card Widget ---
+  Widget _buildRequestCard(Map<String, dynamic> request, String docId) {
+    final status = request['status'] ?? 'Pending';
+    final bloodGroup = request['bloodGroup'] ?? 'N/A';
+    final bloodColor = _bloodColors[bloodGroup] ?? Colors.grey;
+    final isPending = status.toLowerCase() == 'pending';
+    final isApproved = status == 'Approved';
+
+    final cardColor = isPending ? const Color(0xFFFEE2E2) : Colors.white; 
+    final detailTextColor = isPending ? Colors.red.shade900 : Colors.black87;
+
+    Widget buttonRow;
+    if (isPending) {
+      buttonRow = Padding(
+        padding: const EdgeInsets.only(top: 8.0),
+        child: Row(
+          children: [
+            Expanded(
+              child: ElevatedButton(
+                onPressed: () => _approveRequest(docId),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green, 
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Approve'),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: OutlinedButton(
+                onPressed: () => _rejectRequest(docId),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.red,
+                  side: const BorderSide(color: Colors.red),
+                ),
+                child: const Text('Reject'),
+              ),
+            ),
+          ],
+        ),
+      );
+    } else {
+      buttonRow = Padding(
+        padding: const EdgeInsets.only(top: 8.0),
+        child: Text(
+          'Status: ${status.toUpperCase()}',
+          style: TextStyle(
+            color: isApproved ? Colors.green : Colors.red,
+            fontWeight: FontWeight.bold,
+            fontSize: 14,
+          ),
+        ),
+      );
+    }
+
+    return Card(
+      color: cardColor,
+      margin: const EdgeInsets.only(bottom: 16),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: isPending ? const BorderSide(color: Color(0xFFF94747), width: 2) : BorderSide.none,
+      ),
+      elevation: 3,
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: bloodColor,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Text(bloodGroup, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(request['patientName'] ?? 'N/A', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: detailTextColor)), 
+                      Text("Location: ${request['location'] ?? 'N/A'}", style: TextStyle(color: detailTextColor.withOpacity(0.7), fontSize: 14)),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: isPending ? Colors.red.shade200 : isApproved ? Colors.green.shade100 : Colors.red.shade100,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(status.toUpperCase(), style: TextStyle(color: isPending ? Colors.red.shade900 : isApproved ? Colors.green.shade800 : Colors.red.shade800, fontWeight: FontWeight.bold, fontSize: 12)),
+                )
+              ],
+            ),
+            const SizedBox(height: 10),
+            
+            _buildDetailRow(Icons.phone, request['contactPhone'] ?? 'N/A', detailTextColor),
+            _buildDetailRow(Icons.access_time, "Requested: ${request['timestamp'] != null ? (request['timestamp'] as Timestamp).toDate().toString().split(' ')[0] : 'N/A'}", detailTextColor),
+            buttonRow,
+          ],
+        ),
+      ),
+    );
   }
 
-  // -------------------- UI Helper Widgets DEFINITIONS --------------------
-
+  Widget _buildDetailRow(IconData icon, String text, Color textColor) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: textColor.withOpacity(0.7)),
+          const SizedBox(width: 8),
+          Expanded(child: Text(text, style: TextStyle(color: textColor, fontSize: 14))),
+        ],
+      ),
+    );
+  }
+  
   Widget _buildStatCard(String title, String value, Color color, IconData icon) {
     return Expanded(
       child: Container(
@@ -71,137 +191,13 @@ class _CampRequestsPageState extends State<CampRequestsPage> {
     );
   }
 
-  Widget _buildDetailRow(IconData icon, String text, Color textColor) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
-      child: Row(
-        children: [
-          Icon(icon, size: 16, color: textColor.withOpacity(0.7)),
-          const SizedBox(width: 8),
-          Expanded(child: Text(text, style: TextStyle(color: textColor, fontSize: 14))),
-        ],
-      ),
-    );
-  }
-  
-  Widget _buildRequestCard(BuildContext context, Map<String, dynamic> request, String docId) {
-    // Reading data needed for the card
-    final status = request['status'] ?? 'Pending';
-    final campName = request['campName'] ?? 'Unknown Camp';
-    final userName = request['userName'] ?? 'N/A';
-    final userEmail = request['userEmail'] ?? 'N/A';
-    
-    final isPending = status.toLowerCase() == 'pending';
-    final isApproved = status == 'Approved';
-
-    final cardColor = isPending ? const Color(0xFFFEEEEE) : Colors.white; // Very Light Red/White
-    final detailTextColor = isPending ? Colors.red.shade900 : Colors.black87;
-
-    Widget buttonRow;
-    if (isPending) {
-      buttonRow = Padding(
-        padding: const EdgeInsets.only(top: 8.0),
-        child: Row(
-          children: [
-            Expanded(
-              child: ElevatedButton(
-                onPressed: () => _handleAction(docId, campName, 'Approved'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green, 
-                  foregroundColor: Colors.white,
-                ),
-                child: const Text('Approve'),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: OutlinedButton(
-                onPressed: () => _handleAction(docId, campName, 'Rejected'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.red,
-                  side: const BorderSide(color: Colors.red),
-                ),
-                child: const Text('Reject'),
-              ),
-            ),
-          ],
-        ),
-      );
-    } else {
-      buttonRow = Padding(
-        padding: const EdgeInsets.only(top: 8.0),
-        child: Text(
-          'Status: ${status.toUpperCase()}',
-          style: TextStyle(
-            color: isApproved ? Colors.green.shade700 : Colors.red.shade700,
-            fontWeight: FontWeight.bold,
-            fontSize: 14,
-          ),
-        ),
-      );
-    }
-
-    return Card(
-      color: cardColor,
-      margin: const EdgeInsets.only(bottom: 16),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: isPending ? const BorderSide(color: Color(0xFFF94747), width: 2) : BorderSide.none,
-      ),
-      elevation: 3,
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header Row
-            Row(
-              children: [
-                const Icon(Icons.campaign, color: Color(0xFFF94747), size: 30),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(campName, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: detailTextColor)), 
-                      Text("Registered By:", style: TextStyle(color: detailTextColor.withOpacity(0.7), fontSize: 13)),
-                    ],
-                  ),
-                ),
-                // Status Tag
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: isPending ? Colors.red.shade200 : isApproved ? Colors.green.shade100 : Colors.red.shade100,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(status.toUpperCase(), style: TextStyle(color: isPending ? Colors.red.shade900 : isApproved ? Colors.green.shade800 : Colors.red.shade800, fontWeight: FontWeight.bold, fontSize: 12)),
-                )
-              ],
-            ),
-            const Divider(height: 20),
-            
-            // Details
-            _buildDetailRow(Icons.person, "Name: $userName", detailTextColor),
-            _buildDetailRow(Icons.email, "Email: $userEmail", detailTextColor),
-            _buildDetailRow(Icons.access_time, "Requested: ${request['registration_date'] != null ? (request['registration_date'] as Timestamp).toDate().toString().split(' ')[0] : 'N/A'}", detailTextColor),
-            
-            buttonRow, // Action Buttons / Final Status
-          ],
-        ),
-      ),
-    );
-  }
-
-
   // --- Main Build Method (StreamBuilder) ---
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[100],
       body: StreamBuilder<QuerySnapshot>(
-        // TARGETS 'camp_registration_requests' collection
-        stream: _firestore.collection('camp_registration_requests').orderBy('registration_date', descending: true).snapshots(),
+        stream: _firestore.collection('donor_requests').orderBy('timestamp', descending: true).snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -210,10 +206,7 @@ class _CampRequestsPageState extends State<CampRequestsPage> {
             return Center(child: Text('Error loading requests: ${snapshot.error}'));
           }
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return const Center(child: Padding(
-              padding: EdgeInsets.all(20.0),
-              child: Text('No camp registration requests found.', textAlign: TextAlign.center),
-            ));
+            return const Center(child: Text('No donor requests found.'));
           }
 
           final requestsList = snapshot.data!.docs;
@@ -221,8 +214,11 @@ class _CampRequestsPageState extends State<CampRequestsPage> {
           final totalRequests = requestsList.length;
           final approvedRequests = requestsList.where((doc) => doc['status'] == 'Approved').length;
           final rejectedRequests = requestsList.where((doc) => doc['status'] == 'Rejected').length;
-          final pendingRequests = requestsList.where((doc) => doc['status'] == 'Pending').length; // Ensure case matches Firestore
-
+          
+          final pendingRequests = requestsList.where((doc) {
+            final status = doc['status'] as String?;
+            return status != null && status.toLowerCase() == 'pending';
+          }).length;
 
           return CustomScrollView(
             slivers: [
@@ -234,12 +230,11 @@ class _CampRequestsPageState extends State<CampRequestsPage> {
                 title: Row(
                   children: [
                     IconButton(icon: const Icon(Icons.arrow_back, color: Colors.black), onPressed: () => Navigator.pop(context)),
-                    const Text("Camp Requests", style: TextStyle(color: Colors.black, fontSize: 20, fontWeight: FontWeight.bold)),
+                    const Text("Donor Requests", style: TextStyle(color: Colors.black, fontSize: 20, fontWeight: FontWeight.bold)),
                   ],
                 ),
               ),
 
-              // Statistics Cards Section
               SliverPadding(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                 sliver: SliverList(
@@ -247,9 +242,9 @@ class _CampRequestsPageState extends State<CampRequestsPage> {
                     [
                       Row(
                         children: [
-                          _buildStatCard("Total", totalRequests.toString(), const Color(0xFFF94747), Icons.local_hospital),
+                          _buildStatCard("Total Requests", totalRequests.toString(), const Color(0xFFF94747), Icons.file_download),
                           const SizedBox(width: 12),
-                          _buildStatCard("Pending", pendingRequests.toString(), Colors.orange, Icons.schedule),
+                          _buildStatCard("Pending", pendingRequests.toString(), Colors.blue, Icons.schedule),
                         ],
                       ),
                       const SizedBox(height: 12),
@@ -266,7 +261,6 @@ class _CampRequestsPageState extends State<CampRequestsPage> {
                 ),
               ),
 
-              // Requests List Section
               SliverPadding(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
                 sliver: SliverList(
@@ -274,7 +268,7 @@ class _CampRequestsPageState extends State<CampRequestsPage> {
                     (context, index) {
                       final requestData = snapshot.data!.docs[index].data() as Map<String, dynamic>;
                       final docId = snapshot.data!.docs[index].id;
-                      return _buildRequestCard(context, requestData, docId);
+                      return _buildRequestCard(requestData, docId);
                     },
                     childCount: requestsList.length,
                   ),

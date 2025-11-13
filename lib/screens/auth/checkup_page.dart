@@ -1,6 +1,8 @@
 import 'package:blood_bank_app/screens/user/user_dashboard_page.dart';
 import 'package:flutter/material.dart';
-//import 'user_dashboard_page.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
 
 class CheckupPage extends StatefulWidget {
   const CheckupPage({super.key});
@@ -16,6 +18,9 @@ class _CheckupPageState extends State<CheckupPage> {
   final TextEditingController _ageController = TextEditingController();
   String? _selectedBloodGroup;
 
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
   @override
   void dispose() {
     _fullNameController.dispose();
@@ -24,11 +29,13 @@ class _CheckupPageState extends State<CheckupPage> {
     super.dispose();
   }
 
+  // NOTE: You would typically pre-fill name/email here from Auth data.
+  // We skip pre-fill here for a clean example.
+
   int _calculateAge(DateTime birthDate) {
     final today = DateTime.now();
     int age = today.year - birthDate.year;
-    if (today.month < birthDate.month ||
-        (today.month == birthDate.month && today.day < birthDate.day)) {
+    if (today.month < birthDate.month || (today.month == birthDate.month && today.day < birthDate.day)) {
       age--;
     }
     return age;
@@ -37,86 +44,87 @@ class _CheckupPageState extends State<CheckupPage> {
   Future<void> _selectDate(BuildContext context) async {
     final picked = await showDatePicker(
       context: context,
-      initialDate: DateTime(2000),
-      firstDate: DateTime(1900),
-      lastDate: DateTime.now(),
+      initialDate: DateTime(2000), firstDate: DateTime(1900), lastDate: DateTime.now(),
+      builder: (context, child) {
+        return Theme(data: ThemeData.light().copyWith(primaryColor: Colors.red), child: child!);
+      },
     );
     if (picked != null) {
       setState(() {
-        _dobController.text = "${picked.day}/${picked.month}/${picked.year}";
+        _dobController.text = DateFormat('dd/MM/yyyy').format(picked);
         _ageController.text = _calculateAge(picked).toString();
       });
+    }
+  }
+
+  void _submitCheckup() async {
+    if (!_formKey.currentState!.validate()) return;
+    
+    final user = _auth.currentUser;
+    if (user == null) return;
+
+    final age = int.tryParse(_ageController.text) ?? 0;
+    final isEligible = age >= 18;
+    
+    try {
+      await _firestore.collection('users').doc(user.uid).update({
+        'name': _fullNameController.text.trim(),
+        'date_of_birth': _dobController.text,
+        'age': age,
+        'blood_group': _selectedBloodGroup,
+        'is_donor_approved': isEligible, 
+        'checkup_required': false, // CRUCIAL: Marks checkup as complete!
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Checkup recorded! Donor status: ${isEligible ? "Eligible" : "Not Eligible"}'), backgroundColor: isEligible ? Colors.green : Colors.red),
+      );
+
+      // Navigate to Dashboard
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => UserDashboardPage(
+            fullName: _fullNameController.text.trim(),
+            age: age,
+            bloodGroup: _selectedBloodGroup!,
+          ),
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to save checkup data: $e')),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Register for Checkup'),
-        backgroundColor: Colors.red,
-      ),
+      appBar: AppBar(title: const Text('Register for Checkup', style: TextStyle(color: Colors.white)), backgroundColor: Colors.red, iconTheme: const IconThemeData(color: Colors.white)),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Form(
           key: _formKey,
           child: Column(
             children: [
-              TextFormField(
-                controller: _fullNameController,
-                decoration: const InputDecoration(labelText: 'Full name'),
-                validator: (v) => (v == null || v.trim().isEmpty)
-                    ? 'Please enter full name'
-                    : null,
-              ),
+              TextFormField(controller: _fullNameController, decoration: const InputDecoration(labelText: 'Full name'), validator: (v) => (v == null || v.trim().isEmpty) ? 'Please enter full name' : null),
               const SizedBox(height: 12),
-              TextFormField(
-                controller: _dobController,
-                readOnly: true,
-                decoration: const InputDecoration(
-                  labelText: 'Date of birth',
-                ),
-                onTap: () => _selectDate(context),
-                validator: (v) =>
-                    (v == null || v.trim().isEmpty) ? 'Pick DOB' : null,
-              ),
+              TextFormField(controller: _dobController, readOnly: true, decoration: const InputDecoration(labelText: 'Date of birth', suffixIcon: Icon(Icons.calendar_today)), onTap: () => _selectDate(context), validator: (v) => (v == null || v.trim().isEmpty) ? 'Pick DOB' : null),
               const SizedBox(height: 12),
-              TextFormField(
-                controller: _ageController,
-                readOnly: true,
-                decoration: const InputDecoration(labelText: 'Age'),
-                validator: (v) =>
-                    (v == null || v.trim().isEmpty) ? 'Age required' : null,
-              ),
+              TextFormField(controller: _ageController, readOnly: true, decoration: const InputDecoration(labelText: 'Age'), validator: (v) => (v == null || v.trim().isEmpty) ? 'Age required' : null),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
                 initialValue: _selectedBloodGroup,
-                items: <String>['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']
-                    .map((bg) => DropdownMenuItem(value: bg, child: Text(bg)))
-                    .toList(),
+                items: <String>['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map((bg) => DropdownMenuItem(value: bg, child: Text(bg))).toList(),
                 decoration: const InputDecoration(labelText: 'Blood group'),
                 onChanged: (v) => setState(() => _selectedBloodGroup = v),
-                validator: (v) =>
-                    (v == null || v.isEmpty) ? 'Select blood group' : null,
+                validator: (v) => (v == null || v.isEmpty) ? 'Select blood group' : null,
               ),
               const SizedBox(height: 18),
               ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                onPressed: () {
-                  if (_formKey.currentState!.validate()) {
-                    // Navigate to dashboard
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => UserDashboardPage(
-                          fullName: _fullNameController.text.trim(),
-                          age: int.tryParse(_ageController.text) ?? 0,
-                          bloodGroup: _selectedBloodGroup ?? 'Unknown',
-                        ),
-                      ),
-                    );
-                  }
-                },
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white, minimumSize: const Size(double.infinity, 50)),
+                onPressed: _submitCheckup,
                 child: const Text('REGISTER FOR CHECKUP'),
               ),
             ],

@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart'; // Required for date formatting
 
 class BloodDonationPage extends StatefulWidget {
   const BloodDonationPage({super.key});
@@ -8,6 +11,11 @@ class BloodDonationPage extends StatefulWidget {
 }
 
 class _BloodDonationPageState extends State<BloodDonationPage> {
+  // -------------------- Firebase Instances -------------------- //
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  // -------------------- Form and Controllers -------------------- //
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
@@ -16,6 +24,13 @@ class _BloodDonationPageState extends State<BloodDonationPage> {
 
   String? _selectedGender;
   String? _selectedBloodGroup;
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserProfile(); 
+  }
 
   @override
   void dispose() {
@@ -26,41 +41,177 @@ class _BloodDonationPageState extends State<BloodDonationPage> {
     super.dispose();
   }
 
+  void _loadUserProfile() async {
+    final user = _auth.currentUser;
+    if (user != null) {
+      try {
+        final userDoc = await _firestore.collection('users').doc(user.uid).get();
+        if (userDoc.exists) {
+          final userData = userDoc.data()!;
+          _nameController.text = userData['name'] ?? '';
+          _emailController.text = userData['email'] ?? '';
+          _phoneController.text = userData['phone'] ?? '';
+          _selectedGender = userData['gender'];
+          _selectedBloodGroup = userData['blood_group'];
+          setState(() {}); 
+        }
+      } catch (e) {
+        debugPrint('Error loading user profile for donation form: $e');
+      }
+    }
+  }
+
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: DateTime.now(),
       firstDate: DateTime(1900),
       lastDate: DateTime.now(),
+      builder: (context, child) {
+        return Theme(
+          data: ThemeData.light().copyWith(
+            colorScheme: const ColorScheme.light(primary: Color(0xFFF94747)),
+          ),
+          child: child!,
+        );
+      },
     );
     if (picked != null) {
       setState(() {
-        _dateController.text = "${picked.day}/${picked.month}/${picked.year}";
+        // Use DateFormat to ensure consistent display
+        _dateController.text = DateFormat('dd/MM/yyyy').format(picked);
       });
     }
   }
 
-  void _submitForm() {
-    if (_formKey.currentState!.validate()) {
-      if (_selectedGender == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Please select your gender")),
-        );
-        return;
-      }
+  void _submitForm() async {
+    if (!_formKey.currentState!.validate() || _selectedGender == null || _selectedBloodGroup == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please fill all required fields."), backgroundColor: Colors.red),
+      );
+      return;
+    }
 
-      if (_selectedBloodGroup == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Please select your blood group")),
-        );
-        return;
-      }
+    final user = _auth.currentUser;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("You must be logged in to submit a request."), backgroundColor: Colors.red),
+      );
+      return;
+    }
+
+    setState(() { _isLoading = true; });
+
+    try {
+      final requestData = {
+        'userId': user.uid,
+        'name': _nameController.text.trim(),
+        'email': _emailController.text.trim(),
+        'phone': _phoneController.text.trim(),
+        'gender': _selectedGender,
+        'dateOfDonation': _dateController.text,
+        'bloodGroup': _selectedBloodGroup,
+        'status': 'Pending',
+        'timestamp': FieldValue.serverTimestamp(),
+      };
+
+      await _firestore.collection('donation_requests').add(requestData);
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Form submitted successfully!")),
+        const SnackBar(content: Text("Donation request sent successfully for approval!"), backgroundColor: Colors.green),
       );
+
+      Navigator.pop(context);
+
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Failed to submit request: $e"), backgroundColor: Colors.red),
+      );
+    } finally {
+      setState(() { _isLoading = false; });
     }
   }
+  
+  // --- Input Decoration Helper ---
+  InputDecoration _inputDecoration(String hint) {
+    return InputDecoration(
+      hintText: hint,
+      filled: true,
+      fillColor: Colors.white,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: BorderSide.none,
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(color: Colors.red, width: 2),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(color: Colors.red, width: 2),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(color: Colors.red, width: 2),
+      ),
+      contentPadding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
+    );
+  }
+
+  // --- Form Field Helper ---
+  Widget _buildValidatedTextField({
+    required TextEditingController controller,
+    required String hint,
+    TextInputType keyboardType = TextInputType.text,
+    bool isPhone = false,
+    bool readOnly = false,
+    VoidCallback? onTap,
+  }) {
+    return TextFormField(
+      controller: controller,
+      keyboardType: keyboardType,
+      readOnly: readOnly,
+      onTap: onTap,
+      decoration: _inputDecoration(hint).copyWith(
+        suffixIcon: onTap != null ? const Icon(Icons.calendar_today, color: Colors.grey) : null,
+      ),
+      autovalidateMode: AutovalidateMode.onUserInteraction,
+      validator: (value) {
+        if (value == null || value.trim().isEmpty) {
+          return "Please enter your $hint";
+        }
+        if (isPhone && !RegExp(r'^[0-9]{10}$').hasMatch(value)) {
+          return "Enter a valid 10-digit phone number";
+        }
+        return null;
+      },
+    );
+  }
+
+  // --- Dropdown Field Helper ---
+  Widget _buildBloodGroupDropdown() {
+    return DropdownButtonFormField<String>(
+      decoration: _inputDecoration("Blood Group"),
+      initialValue: _selectedBloodGroup,
+      hint: const Text("Select Blood Group"),
+      items: <String>[
+        'A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'
+      ].map((String value) {
+        return DropdownMenuItem<String>(
+          value: value,
+          child: Text(value),
+        );
+      }).toList(),
+      onChanged: (String? newValue) {
+        setState(() {
+          _selectedBloodGroup = newValue;
+        });
+      },
+      validator: (value) => value == null ? "Please select your blood group" : null,
+      autovalidateMode: AutovalidateMode.onUserInteraction,
+    );
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -114,142 +265,73 @@ class _BloodDonationPageState extends State<BloodDonationPage> {
                 key: _formKey,
                 child: Column(
                   children: [
-                    // Name
-                    TextFormField(
-                      controller: _nameController,
-                      decoration: _inputDecoration("Name"),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return "Please enter your name";
-                        }
-                        return null;
-                      },
-                    ),
+                    _buildValidatedTextField(controller: _nameController, hint: "Name"),
                     const SizedBox(height: 20),
 
-                    // Email
-                    TextFormField(
-                      controller: _emailController,
-                      decoration: _inputDecoration("Email"),
-                      keyboardType: TextInputType.emailAddress,
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return "Please enter your email";
-                        }
-                        final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
-                        if (!emailRegex.hasMatch(value)) {
-                          return "Enter a valid email address";
-                        }
-                        return null;
-                      },
-                    ),
+                    _buildValidatedTextField(controller: _emailController, hint: "Email", keyboardType: TextInputType.emailAddress),
                     const SizedBox(height: 20),
 
-                    // Phone
-                    TextFormField(
-                      controller: _phoneController,
-                      decoration: _inputDecoration("Phone"),
-                      keyboardType: TextInputType.phone,
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return "Please enter your phone number";
-                        }
-                        if (!RegExp(r'^[0-9]{10}$').hasMatch(value)) {
-                          return "Enter a valid 10-digit phone number";
-                        }
-                        return null;
-                      },
-                    ),
+                    _buildValidatedTextField(controller: _phoneController, hint: "Phone", keyboardType: TextInputType.phone, isPhone: true),
                     const SizedBox(height: 20),
 
                     // Gender
-                    Row(
-                      children: [
-                        Expanded(
-                          child: RadioListTile<String>(
-                            title: const Text('Man'),
-                            value: 'man',
-                            groupValue: _selectedGender,
-                            onChanged: (value) {
-                              setState(() => _selectedGender = value);
-                            },
-                            activeColor: Colors.red,
+                    Container(
+                      padding: const EdgeInsets.only(left: 10),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Row(
+                        children: [
+                          const Text('Gender:'),
+                          Expanded(
+                            child: RadioListTile<String>(
+                              title: const Text('Man'),
+                              value: 'Male',
+                              groupValue: _selectedGender,
+                              onChanged: (value) => setState(() => _selectedGender = value),
+                              activeColor: Colors.red,
+                            ),
                           ),
-                        ),
-                        Expanded(
-                          child: RadioListTile<String>(
-                            title: const Text('Female'),
-                            value: 'female',
-                            groupValue: _selectedGender,
-                            onChanged: (value) {
-                              setState(() => _selectedGender = value);
-                            },
-                            activeColor: Colors.red,
+                          Expanded(
+                            child: RadioListTile<String>(
+                              title: const Text('Female'),
+                              value: 'Female',
+                              groupValue: _selectedGender,
+                              onChanged: (value) => setState(() => _selectedGender = value),
+                              activeColor: Colors.red,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                     const SizedBox(height: 20),
 
-                    // Date of Birth
-                    TextFormField(
+                    // Date of Donation
+                    _buildValidatedTextField(
                       controller: _dateController,
+                      hint: "Date of Donation",
                       readOnly: true,
                       onTap: () => _selectDate(context),
-                      decoration: _inputDecoration("Date of Birth").copyWith(
-                        suffixIcon: const Icon(Icons.calendar_today, color: Colors.grey),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return "Please select your date of birth";
-                        }
-                        return null;
-                      },
                     ),
                     const SizedBox(height: 20),
 
-                    // Blood Group Dropdown with validation
-                    DropdownButtonFormField<String>(
-                      decoration: _inputDecoration("Blood Group"),
-                      value: _selectedBloodGroup,
-                      hint: const Text("Select Blood Group"),
-                      items: <String>[
-                        'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'
-                      ].map((String value) {
-                        return DropdownMenuItem<String>(
-                          value: value,
-                          child: Text(value),
-                        );
-                      }).toList(),
-                      onChanged: (String? newValue) {
-                        setState(() {
-                          _selectedBloodGroup = newValue;
-                        });
-                      },
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return "Please select your blood group";
-                        }
-                        return null;
-                      },
-                    ),
+                    // Blood Group Dropdown
+                    _buildBloodGroupDropdown(),
                     const SizedBox(height: 40),
 
                     // Submit Button
                     ElevatedButton(
-                      onPressed: _submitForm,
+                      onPressed: _isLoading ? null : _submitForm,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red,
-                        foregroundColor: Colors.white,
-                        minimumSize: const Size(double.infinity, 50),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
+                        backgroundColor: Colors.red, 
+                        foregroundColor: Colors.white, 
+                        minimumSize: const Size(double.infinity, 50), 
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       ),
-                      child: const Text(
-                        "Submit",
-                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                      ),
+                      child: _isLoading
+                          ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                          : const Text("Submit", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                     ),
                   ],
                 ),
@@ -258,23 +340,6 @@ class _BloodDonationPageState extends State<BloodDonationPage> {
           ],
         ),
       ),
-    );
-  }
-
-  InputDecoration _inputDecoration(String hint) {
-    return InputDecoration(
-      hintText: hint,
-      filled: true,
-      fillColor: Colors.white,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: BorderSide.none,
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: Colors.red, width: 2),
-      ),
-      contentPadding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
     );
   }
 }

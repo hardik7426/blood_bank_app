@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ManageCampsPage extends StatefulWidget {
   const ManageCampsPage({super.key});
@@ -8,14 +9,17 @@ class ManageCampsPage extends StatefulWidget {
 }
 
 class _ManageCampsPageState extends State<ManageCampsPage> {
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final TextEditingController _searchController = TextEditingController();
-  // NOTE: We must use a mutable List for _filteredCamps to modify it
-  List<Map<String, dynamic>> _filteredCamps = List.from(_campData); 
+  
+  // NOTE: In a stream builder, we don't need _filteredCamps state, as Firestore does the filtering.
+  // We will use the search controller to refine the Firestore query.
+  String _searchQuery = '';
 
   @override
   void initState() {
     super.initState();
-    _searchController.addListener(_filterCamps);
+    _searchController.addListener(_updateSearchQuery);
   }
 
   @override
@@ -24,64 +28,57 @@ class _ManageCampsPageState extends State<ManageCampsPage> {
     super.dispose();
   }
 
-  // Logic to filter the camps list based on search query
-  void _filterCamps() {
-    final query = _searchController.text.toLowerCase();
-    
+  void _updateSearchQuery() {
     setState(() {
-      if (query.isEmpty) {
-        _filteredCamps = List.from(_campData);
-      } else {
-        _filteredCamps = _campData.where((camp) {
-          final name = camp['name'].toLowerCase();
-          final location = camp['location'].toLowerCase();
-          return name.contains(query) || location.contains(query);
-        }).toList();
-      }
+      _searchQuery = _searchController.text.toLowerCase();
     });
   }
 
-  // Logic to handle deleting a camp
-  void _deleteCamp(BuildContext context, String campName) {
-    showDialog(
+  // -------------------- DELETE Camp Logic --------------------
+  Future<void> _deleteCamp(BuildContext context, String docId, String campName) async {
+    final confirmed = await showDialog<bool>(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text("Confirm Deletion"),
-          content: Text("Are you sure you want to delete the camp: $campName?"),
+          content: Text("Are you sure you want to delete the camp: $campName? This cannot be undone."),
           actions: [
-            TextButton(
-              child: const Text("Cancel"),
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-            TextButton(
-              child: const Text("Delete", style: TextStyle(color: Colors.red)),
-              onPressed: () {
-                // Perform the deletion logic
-                setState(() {
-                  _campData.removeWhere((camp) => camp['name'] == campName);
-                  _filterCamps(); // Re-filter the displayed list
-                });
-                Navigator.of(context).pop();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('$campName deleted.')),
-                );
-              },
-            ),
+            TextButton(child: const Text("Cancel"), onPressed: () => Navigator.of(context).pop(false)),
+            TextButton(child: const Text("Delete", style: TextStyle(color: Colors.red)), onPressed: () => Navigator.of(context).pop(true)),
           ],
         );
       },
     );
+
+    if (confirmed == true) {
+      try {
+        await _firestore.collection('available_camps').doc(docId).delete(); // CRUCIAL: DELETE
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('$campName deleted successfully!'), backgroundColor: Colors.green),
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to delete camp: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
   }
 
-  Color _getStatusColor(bool isTargetBased) {
-    return isTargetBased ? Colors.blue.shade600 : Colors.red.shade600;
+  Color _getStatusColor(String status) {
+    return status == 'Active' ? Colors.green.shade600 : Colors.red.shade600;
   }
 
   // --- UI Building ---
   
   @override
   Widget build(BuildContext context) {
+    // Determine the Firestore query based on the search input
+    Query baseQuery = _firestore.collection('available_camps').orderBy('createdAt', descending: true);
+    
+    // NOTE: Filtering by name/location in Firestore requires special indexing/search techniques (like full-text search) 
+    // for complex queries. For simplicity in this StreamBuilder, we'll use a basic name filter in memory.
+    // If you need large-scale search, consider using Firebase Cloud Functions + Algolia.
+
     return Scaffold(
       backgroundColor: Colors.grey[100],
       body: CustomScrollView(
@@ -122,7 +119,7 @@ class _ManageCampsPageState extends State<ManageCampsPage> {
                   TextField(
                     controller: _searchController,
                     decoration: InputDecoration(
-                      hintText: "Search camps...",
+                      hintText: "Search camps by name or location...",
                       prefixIcon: const Icon(Icons.search, color: Colors.grey),
                       filled: true,
                       fillColor: Colors.white,
@@ -140,32 +137,56 @@ class _ManageCampsPageState extends State<ManageCampsPage> {
             ),
           ),
 
-          // Camps List
-          SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            sliver: SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  final camp = _filteredCamps[index];
-                  return _buildCampCard(context, camp);
-                },
-                childCount: _filteredCamps.length,
-              ),
-            ),
-          ),
+          // Camps List using StreamBuilder (READ Operation)
+          StreamBuilder<QuerySnapshot>(
+            stream: baseQuery.snapshots(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const SliverToBoxAdapter(child: Center(child: Padding(padding: EdgeInsets.only(top: 50), child: CircularProgressIndicator())));
+              }
+              if (snapshot.hasError) {
+                return SliverToBoxAdapter(child: Center(child: Text('Error: ${snapshot.error}')));
+              }
+              if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                return const SliverToBoxAdapter(child: Center(child: Padding(padding: EdgeInsets.only(top: 50), child: Text('No camps have been created yet.'))));
+              }
 
+              // Filter data locally based on the search query
+              final filteredCamps = snapshot.data!.docs.where((doc) {
+                final name = doc['name']?.toLowerCase() ?? '';
+                final location = doc['location']?.toLowerCase() ?? '';
+                return name.contains(_searchQuery) || location.contains(_searchQuery);
+              }).toList();
+
+
+              return SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                sliver: SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      final camp = filteredCamps[index].data() as Map<String, dynamic>;
+                      final docId = filteredCamps[index].id;
+                      return _buildCampCard(context, camp, docId);
+                    },
+                    childCount: filteredCamps.length,
+                  ),
+                ),
+              );
+            },
+          ),
           const SliverToBoxAdapter(child: SizedBox(height: 20)),
         ],
       ),
     );
   }
 
-  Widget _buildCampCard(BuildContext context, Map<String, dynamic> camp) {
-    final bool isTargetBased = camp.containsKey('target');
-    final String statusValueLabel = isTargetBased ? 'Target:' : 'Collected:';
-    final String statusValue =
-        isTargetBased ? camp['target'].toString() : camp['collected'].toString();
-    final Color statusColor = _getStatusColor(isTargetBased);
+  Widget _buildCampCard(BuildContext context, Map<String, dynamic> camp, String docId) {
+    // Safely retrieve and display camp data
+    final capacity = camp['capacity'] ?? 0;
+    final registered = camp['currentParticipants'] ?? 0;
+    final status = camp['status'] ?? 'Draft';
+    final statusColor = _getStatusColor(status);
+    final iconData = (camp['icon'] == 'Icons.local_hospital') ? Icons.local_hospital : Icons.event; // Placeholder icon logic
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -181,122 +202,27 @@ class _ManageCampsPageState extends State<ManageCampsPage> {
             borderRadius: BorderRadius.circular(8),
           ),
           alignment: Alignment.center,
-          child: Icon(camp['icon'], color: Colors.red, size: 30),
+          child: Icon(iconData, color: Colors.red, size: 30),
         ),
-        title: Text(
-          camp['name'],
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-        ),
+        title: Text(camp['name'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 4),
-            // Location Row 
-            Row(
-              children: [
-                const Icon(Icons.location_on, size: 14, color: Colors.black54),
-                const SizedBox(width: 4),
-                Flexible(
-                  child: Text(
-                    camp['location'],
-                    style: const TextStyle(color: Colors.black54, fontSize: 13),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-            ),
+            Row(children: [const Icon(Icons.location_on, size: 14, color: Colors.black54), const SizedBox(width: 4), Flexible(child: Text(camp['location'], style: const TextStyle(color: Colors.black54, fontSize: 13), overflow: TextOverflow.ellipsis))]),
             const SizedBox(height: 4),
-            // Date/Time Row
-            Row(
-              children: [
-                const Icon(Icons.calendar_today, size: 14, color: Colors.black54),
-                const SizedBox(width: 4),
-                Flexible(
-                  child: Text(
-                    '${camp['date']} - ${camp['time']}',
-                    style: const TextStyle(color: Colors.black54, fontSize: 13),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-            ),
+            Row(children: [const Icon(Icons.calendar_today, size: 14, color: Colors.black54), const SizedBox(width: 4), Flexible(child: Text('${camp['startDate']} - ${camp['endDate']}', style: const TextStyle(color: Colors.black54, fontSize: 13), overflow: TextOverflow.ellipsis))]),
             const SizedBox(height: 8),
-            
-            // Status and Registered Count Row
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Registered Count
-                Text(
-                  'Registered: ${camp['registered']}/${camp['capacity']}',
-                  style: const TextStyle(
-                      fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black87),
-                ),
-                // Collected/Target Status
-                Text(
-                  '$statusValueLabel $statusValue units',
-                  style: TextStyle(
-                      fontWeight: FontWeight.bold, fontSize: 14, color: statusColor),
-                ),
-              ],
-            ),
+            Text('Registered: $registered/$capacity', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black87)),
+            Text('Status: $status', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: statusColor)),
           ],
         ),
-        
-        // --- DELETE BUTTON ---
         trailing: TextButton.icon(
           icon: const Icon(Icons.delete, color: Colors.red, size: 18),
-          label: const Text(
-            'Delete',
-            style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
-          ),
-          onPressed: () => _deleteCamp(context, camp['name']),
+          label: const Text('Delete', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+          onPressed: () => _deleteCamp(context, docId, camp['name']), // DELETE logic call
         ),
       ),
     );
   }
 }
-
-// NOTE: The sample data must be a mutable list (List<...>) if we want to delete items from it.
-List<Map<String, dynamic>> _campData = [
-  {
-    'name': 'City Hospital Blood Drive',
-    'location': 'Downtown Medical Center',
-    'date': 'Dec 15, 2024',
-    'time': '9:00 AM - 5:00 PM',
-    'registered': 45,
-    'capacity': 60,
-    'collected': 32,
-    'icon': Icons.local_hospital,
-  },
-  {
-    'name': 'Corporate Blood Camp',
-    'location': 'Tech Park Office Complex',
-    'date': 'Dec 20, 2024',
-    'time': '10:00 AM - 4:00 PM',
-    'registered': 28,
-    'capacity': 50,
-    'target': 40,
-    'icon': Icons.business,
-  },
-  {
-    'name': 'University Blood Drive',
-    'location': 'State University Campus',
-    'date': 'Dec 10, 2024',
-    'time': '11:00 AM - 6:00 PM',
-    'registered': 75,
-    'capacity': 75,
-    'collected': 68,
-    'icon': Icons.school,
-  },
-  {
-    'name': 'Community Center Drive',
-    'location': 'Central Community Hall',
-    'date': 'Dec 25, 2024',
-    'time': '8:00 AM - 3:00 PM',
-    'registered': 12,
-    'capacity': 40,
-    'target': 30,
-    'icon': Icons.home,
-  },
-];
