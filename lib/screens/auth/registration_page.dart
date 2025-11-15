@@ -297,7 +297,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
                     const SizedBox(height: 20),
                     // Blood Group Dropdown
                     DropdownButtonFormField<String>(
-                      value: _selectedBloodGroup,
+                      initialValue: _selectedBloodGroup,
                       decoration: _inputDecoration("Blood Group"),
                       items: ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']
                           .map((bg) => DropdownMenuItem(value: bg, child: Text(bg)))

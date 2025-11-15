@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 class VerifyOtpPage extends StatefulWidget {
-  const VerifyOtpPage({Key? key}) : super(key: key);
+  const VerifyOtpPage({super.key});
 
   @override
   _VerifyOtpPageState createState() => _VerifyOtpPageState();
