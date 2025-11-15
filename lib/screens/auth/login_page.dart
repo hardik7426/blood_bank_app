@@ -1,3 +1,4 @@
+import 'package:blood_bank_app/screens/auth/forgot_password_email_page.dart';
 import 'package:flutter/material.dart';
 import 'package:blood_bank_app/screens/auth/registration_page.dart';
 import 'package:blood_bank_app/screens/auth/checkup_page.dart';
@@ -5,7 +6,6 @@ import 'package:blood_bank_app/screens/admin/admin_dashboard_page.dart';
 import 'package:blood_bank_app/screens/user/user_dashboard_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
@@ -57,10 +57,10 @@ class _LoginPageState extends State<LoginPage> {
       final userData = userDoc.data() as Map<String, dynamic>;
 
       // FIX: Checkup required logic (defaults to TRUE if the field doesn't exist)
-      final bool requiresCheckup = userData['checkup_required'] ?? true; 
+      final bool requiresCheckup = (userData['checkup_required'] is bool) ? userData['checkup_required'] as bool : true; 
       
       final String fullName = userData['name'] ?? 'User';
-      final int age = userData['age'] as int? ?? 0;
+      final int age = (userData['age'] is int) ? userData['age'] as int : (int.tryParse('${userData['age']}') ?? 0);
       final String bloodGroup = userData['blood_group'] ?? 'N/A';
 
       // 2. NAVIGATION BASED ON ROLE/STATUS
@@ -92,10 +92,13 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
-  // --- Input Decoration Helper (omitted for brevity) ---
+  // --- Input Decoration Helper ---
   InputDecoration _inputDecoration(String hint) {
     return InputDecoration(
-      hintText: hint, filled: true, fillColor: Colors.white, contentPadding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
+      hintText: hint,
+      filled: true,
+      fillColor: Colors.white,
+      contentPadding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none), 
       focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Colors.red, width: 2)),
       errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Colors.red, width: 2)),
@@ -110,23 +113,105 @@ class _LoginPageState extends State<LoginPage> {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            Container(width: double.infinity, height: 250, decoration: const BoxDecoration(color: Color(0xFFF94747), borderRadius: BorderRadius.only(bottomLeft: Radius.circular(80), bottomRight: Radius.circular(80))), child: Center(child: Container(width: 120, height: 120, decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle), child: const Icon(Icons.favorite, size: 60, color: Colors.red)))),
+            Container(
+              width: double.infinity,
+              height: 250,
+              decoration: const BoxDecoration(
+                color: Color(0xFFF94747),
+                borderRadius: BorderRadius.only(bottomLeft: Radius.circular(80), bottomRight: Radius.circular(80)),
+              ),
+              child: Center(
+                child: Container(
+                  width: 120,
+                  height: 120,
+                  decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                  child: const Icon(Icons.favorite, size: 60, color: Colors.red),
+                ),
+              ),
+            ),
             const SizedBox(height: 30),
-            Padding(padding: const EdgeInsets.symmetric(horizontal: 25.0), child: Align(alignment: Alignment.centerLeft, child: Row(children: const [Text("Welcome Back", style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.red)), SizedBox(width: 10), Text("👋", style: TextStyle(fontSize: 28))]))),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 25.0),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Row(
+                  children: const [
+                    Text("Welcome Back", style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.red)),
+                    SizedBox(width: 10),
+                    Text("👋", style: TextStyle(fontSize: 28)),
+                  ],
+                ),
+              ),
+            ),
             const SizedBox(height: 20),
-            Form(key: _formKey, child: Padding(padding: const EdgeInsets.symmetric(horizontal: 25.0), child: Column(children: [
-                    TextFormField(controller: _emailController, decoration: _inputDecoration("Email"), keyboardType: TextInputType.emailAddress, validator: (v) => (v == null || v.isEmpty) ? 'Please enter your email' : null, autovalidateMode: AutovalidateMode.onUserInteraction),
+            Form(
+              key: _formKey,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 25.0),
+                child: Column(
+                  children: [
+                    TextFormField(
+                      controller: _emailController,
+                      decoration: _inputDecoration("Email"),
+                      keyboardType: TextInputType.emailAddress,
+                      validator: (v) {
+                        if (v == null || v.isEmpty) return 'Please enter your email';
+                        final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+');
+                        if (!emailRegex.hasMatch(v)) return 'Enter a valid email';
+                        return null;
+                      },
+                      autovalidateMode: AutovalidateMode.onUserInteraction,
+                    ),
                     const SizedBox(height: 20),
-                    TextFormField(controller: _passwordController, obscureText: true, decoration: _inputDecoration("Password").copyWith(suffixIcon: const Icon(Icons.visibility_off, color: Colors.grey)), validator: (v) => (v == null || v.isEmpty) ? 'Please enter your password' : null, autovalidateMode: AutovalidateMode.onUserInteraction),
-                  ]))),
+                    TextFormField(
+                      controller: _passwordController,
+                      obscureText: true,
+                      decoration: _inputDecoration("Password").copyWith(suffixIcon: const Icon(Icons.visibility_off, color: Colors.grey)),
+                      validator: (v) => (v == null || v.isEmpty) ? 'Please enter your password' : null,
+                      autovalidateMode: AutovalidateMode.onUserInteraction,
+                    ),
+                  ],
+                ),
+              ),
+            ),
             const SizedBox(height: 10),
-            Padding(padding: const EdgeInsets.symmetric(horizontal: 25.0), child: Align(alignment: Alignment.centerRight, child: TextButton(onPressed: () {}, child: const Text("Forgot password?", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold))))),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 25.0),
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: () {
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => const ForgotPasswordPage()));
+                  },
+                  child: const Text("Forgot password?", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                ),
+              ),
+            ),
             const SizedBox(height: 20),
-            Padding(padding: const EdgeInsets.symmetric(horizontal: 25.0), child: ElevatedButton(onPressed: _isLoading ? null : _handleLogin, style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white, minimumSize: const Size(double.infinity, 50), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))), child: _isLoading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : const Text("Login", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)))),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 25.0),
+              child: ElevatedButton(
+                onPressed: _isLoading ? null : _handleLogin,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size(double.infinity, 50),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                child: _isLoading
+                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                    : const Text("Login", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              ),
+            ),
             const SizedBox(height: 20),
             Row(mainAxisAlignment: MainAxisAlignment.center, children: [
               const Text("Don't have an account? ", style: TextStyle(color: Colors.black54)),
-              TextButton(onPressed: () { Navigator.push(context, MaterialPageRoute(builder: (context) => const RegistrationPage())); }, child: const Text("Register", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold))),
+              TextButton(
+                onPressed: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => const RegistrationPage()));
+                },
+                child: const Text("Register", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+              ),
             ]),
             const SizedBox(height: 20),
           ],
@@ -135,3 +220,4 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 }
+
