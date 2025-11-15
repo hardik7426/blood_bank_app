@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class InventoryPage extends StatefulWidget {
   const InventoryPage({super.key});
@@ -8,64 +9,73 @@ class InventoryPage extends StatefulWidget {
 }
 
 class _InventoryPageState extends State<InventoryPage> {
-  // State variables for filtering and searching
-  String _selectedFilter = 'All Types';
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final TextEditingController _searchController = TextEditingController();
+  
+  String _selectedFilter = 'All Types';
+  String _searchQuery = '';
 
   // Helper function to get color based on blood type
   Color _getBloodColor(String bloodType) {
     switch (bloodType) {
       case 'A+':
-        return Colors.red.shade400;
+      case 'A-':
+        return Colors.red.shade600;
       case 'B+':
-        return Colors.blue.shade400;
+      case 'B-':
+        return Colors.blue.shade600;
       case 'O+':
-        return Colors.green.shade400;
+      case 'O-':
+        return Colors.green.shade600;
       case 'AB+':
-        return Colors.purple.shade400;
+      case 'AB-':
+        return Colors.purple.shade600;
       default:
-        return Colors.grey.shade600; // Fallback for unknown types
+        return Colors.grey.shade600;
     }
   }
 
   // --- Filtering and Search Logic ---
-
-  List<Map<String, String>> get _filteredInventoryData {
-    String query = _searchController.text.toLowerCase();
-    
-    // 1. Filter by blood type
-    List<Map<String, String>> filteredByType = _inventoryData.where((item) {
-      if (_selectedFilter == 'All Types') {
-        return true;
-      }
-      return item['bloodType'] == _selectedFilter;
-    }).toList();
-
-    // 2. Filter by search query (ID or blood type)
-    if (query.isEmpty) {
-      return filteredByType;
-    }
-
-    return filteredByType.where((item) {
-      final id = item['id']!.toLowerCase();
-      final bloodType = item['bloodType']!.toLowerCase();
-      
-      return id.contains(query) || bloodType.contains(query);
-    }).toList();
+  void _updateSearchQuery(String query) {
+    setState(() {
+      _searchQuery = query.toLowerCase();
+    });
   }
   
-  // Method to handle removal of an item (for demonstration purposes only)
-  void _removeItem(String id) {
-    setState(() {
-      // Find and remove the item from the sample data list
-      _inventoryData.removeWhere((item) => item['id'] == id);
-    });
-    // In a real app, you would call a database service here
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Removed Inventory ID: $id')),
+  // Method to handle removal of an item (deleting document from Firestore)
+  void _removeItem(String docId, String bloodType) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          title: const Text('Confirm Inventory Removal'),
+          content: Text('Are you sure you want to remove 1 unit of $bloodType from inventory?'),
+          actions: [
+            TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: const Text('Remove', style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        );
+      },
     );
-  }
 
+    if (confirmed == true) {
+      try {
+        // In a real inventory system, you would decrement a count. 
+        // Here, we simulate deleting the specific unit record.
+        await _firestore.collection('donation_requests').doc(docId).delete();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Removed 1 unit of $bloodType from inventory.'), backgroundColor: Colors.green),
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to remove item: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
 
   // Helper function to build the filter chip
   Widget _buildFilterChip(String label) {
@@ -99,9 +109,8 @@ class _InventoryPageState extends State<InventoryPage> {
   @override
   void initState() {
     super.initState();
-    // Listen to search field changes to trigger re-filtering
     _searchController.addListener(() {
-      setState(() {});
+      _updateSearchQuery(_searchController.text);
     });
   }
 
@@ -145,55 +154,99 @@ class _InventoryPageState extends State<InventoryPage> {
                 ),
                 const SizedBox(height: 16),
                 
-                // Total Units Stat Card
-                _buildTotalUnitsCard(total: _inventoryData.length), // Use dynamic count
-                const SizedBox(height: 20),
-
-                // Filter Chips
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: [
-                      _buildFilterChip('All Types'),
-                      _buildFilterChip('A+'),
-                      _buildFilterChip('B+'),
-                      _buildFilterChip('O+'),
-                      _buildFilterChip('AB+'),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 15),
-
-                // Search Bar
-                TextField(
-                  controller: _searchController,
-                  decoration: InputDecoration(
-                    hintText: "Search by donor ID, blood type...",
-                    prefixIcon: const Icon(Icons.search, color: Colors.grey),
-                    filled: true,
-                    fillColor: Colors.white,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide.none,
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(vertical: 15, horizontal: 10),
-                  ),
-                ),
+                // Total Units Stat Card Placeholder (Updated in StreamBuilder)
+                // We show the search bar below the initial UI setup
               ],
             ),
           ),
 
-          // Inventory List (Displays filtered results)
+          // StreamBuilder for Live Data
           Expanded(
-            child: ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-              children: _filteredInventoryData.map((item) => _buildInventoryCard(context, item)).toList(),
+            child: StreamBuilder<QuerySnapshot>(
+              // TARGET: All approved donation offers (which constitute the inventory)
+              stream: _firestore.collection('donation_requests').where('status', isEqualTo: 'Approved').snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (snapshot.hasError) {
+                  return Center(child: Text('Error loading inventory: ${snapshot.error}'));
+                }
+                
+                final allUnits = snapshot.data?.docs ?? [];
+                
+                // 1. Apply Filtering Logic
+                final filteredUnits = allUnits.where((doc) {
+                  final data = doc.data() as Map<String, dynamic>;
+                  final bloodType = data['bloodGroup']?.toUpperCase() ?? '';
+                  final id = doc.id.toUpperCase();
+                  
+                  // Filter by Type
+                  bool matchesType = _selectedFilter == 'All Types' || bloodType == _selectedFilter;
+                  
+                  // Filter by Search Query (ID or Blood Type)
+                  bool matchesQuery = bloodType.contains(_searchQuery.toUpperCase()) || id.contains(_searchQuery.toUpperCase());
+                  
+                  return matchesType && matchesQuery;
+                }).toList();
+                
+                final totalUnits = allUnits.length;
+                
+                // 2. Build the UI using the fetched data
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Display Total Units Card (Dynamic Value)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                      child: _buildTotalUnitsCard(total: totalUnits),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Filter Chips (Needs to be rebuilt inside StreamBuilder if logic relies on snapshot)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: [
+                            _buildFilterChip('All Types'),
+                            _buildFilterChip('A+'),
+                            _buildFilterChip('B+'),
+                            _buildFilterChip('O+'),
+                            _buildFilterChip('AB+'),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 15),
+
+                    // Inventory List (Displays filtered results)
+                    Expanded(
+                      child: filteredUnits.isEmpty
+                          ? const Center(child: Text('No matching blood units in inventory.'))
+                          : ListView.builder(
+                              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                              itemCount: filteredUnits.length,
+                              itemBuilder: (context, index) {
+                                final unit = filteredUnits[index].data() as Map<String, dynamic>;
+                                final docId = filteredUnits[index].id;
+                                return _buildInventoryCard(context, unit, docId);
+                              },
+                            ),
+                    ),
+                  ],
+                );
+              },
             ),
           ),
         ],
       ),
     );
   }
+
+  // --- Helper Widgets ---
 
   Widget _buildTotalUnitsCard({required int total}) {
     return Card(
@@ -228,7 +281,6 @@ class _InventoryPageState extends State<InventoryPage> {
                 ),
               ],
             ),
-            // Right side: Red Icon
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
@@ -243,8 +295,11 @@ class _InventoryPageState extends State<InventoryPage> {
     );
   }
 
-  Widget _buildInventoryCard(BuildContext context, Map<String, String> item) {
-    final color = _getBloodColor(item['bloodType']!);
+  Widget _buildInventoryCard(BuildContext context, Map<String, dynamic> item, String docId) {
+    final bloodType = item['bloodGroup'] ?? 'N/A';
+    final color = _getBloodColor(bloodType);
+    final unitId = docId.substring(0, 8).toUpperCase(); // Use part of document ID as unit ID
+
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
       elevation: 2,
@@ -260,24 +315,24 @@ class _InventoryPageState extends State<InventoryPage> {
           ),
           alignment: Alignment.center,
           child: Text(
-            item['bloodType']!,
+            bloodType,
             style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
           ),
         ),
         title: Text(
-          "ID: ${item['id']!}",
+          "Unit ID: $unitId",
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text("Collected: ${item['date']!}", style: const TextStyle(color: Colors.black54)),
+            Text("Donor: ${item['name'] ?? 'N/A'}", style: const TextStyle(color: Colors.black54)),
             const SizedBox(height: 4),
-            Text("Volume: ${item['volume']!}", style: const TextStyle(fontWeight: FontWeight.bold)),
+            Text("Collection Date: ${item['dateOfDonation'] ?? 'N/A'}", style: const TextStyle(fontWeight: FontWeight.bold)),
           ],
         ),
         trailing: TextButton.icon(
-          onPressed: () => _removeItem(item['id']!),
+          onPressed: () => _removeItem(docId, bloodType),
           icon: const Icon(Icons.delete, color: Colors.red, size: 18),
           label: const Text(
             'Remove',
@@ -288,15 +343,3 @@ class _InventoryPageState extends State<InventoryPage> {
     );
   }
 }
-
-// NOTE: This list MUST be defined outside the widget class if you want to modify it with setState.
-// In a real app, this would be a list fetched from Firestore.
-List<Map<String, String>> _inventoryData = [
-  {'id': 'BD001234', 'bloodType': 'A+', 'date': '15 Dec 2024', 'volume': '450ml'},
-  {'id': 'BD001235', 'bloodType': 'B+', 'date': '14 Dec 2024', 'volume': '450ml'},
-  {'id': 'BD001236', 'bloodType': 'O+', 'date': '13 Dec 2024', 'volume': '450ml'},
-  {'id': 'BD001237', 'bloodType': 'A-', 'date': '12 Dec 2024', 'volume': '450ml'},
-  {'id': 'BD001238', 'bloodType': 'AB+', 'date': '11 Dec 2024', 'volume': '450ml'},
-  {'id': 'BD001239', 'bloodType': 'O-', 'date': '10 Dec 2024', 'volume': '450ml'},
-  {'id': 'BD001240', 'bloodType': 'B-', 'date': '09 Dec 2024', 'volume': '450ml'},
-];

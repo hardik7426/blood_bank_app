@@ -4,7 +4,7 @@ class DonorHistoryPage extends StatelessWidget {
   const DonorHistoryPage({super.key});
 
   // Helper to get color based on blood type
-  Color _getBloodColor(String bloodType) {
+  Color _getBloodColor(String? bloodType) {
     switch (bloodType) {
       case 'A+':
       case 'O+':
@@ -39,12 +39,14 @@ class DonorHistoryPage extends StatelessWidget {
                     icon: const Icon(Icons.arrow_back, color: Colors.black),
                     onPressed: () => Navigator.pop(context),
                   ),
+                  const SizedBox(width: 8),
                   const Text(
                     "Donor History",
                     style: TextStyle(
-                        color: Colors.black,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold),
+                      color: Colors.black,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ],
               ),
@@ -55,6 +57,7 @@ class DonorHistoryPage extends StatelessWidget {
           SliverList(
             delegate: SliverChildListDelegate(
               [
+                const SizedBox(height: 12),
                 const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 16.0),
                   child: Text(
@@ -63,6 +66,7 @@ class DonorHistoryPage extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 16),
+                // can't be const because it uses runtime data
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16.0),
                   child: _buildTotalDonationsCard(total: _donorRecords.length),
@@ -102,7 +106,7 @@ class DonorHistoryPage extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.red.withOpacity(0.3),
+            color: Colors.red.withOpacity(0.2),
             blurRadius: 8,
             offset: const Offset(0, 4),
           ),
@@ -135,9 +139,14 @@ class DonorHistoryPage extends StatelessWidget {
     );
   }
 
-  Widget _buildDonorRecordCard(
-      BuildContext context, Map<String, dynamic> record) {
-    final bloodColor = _getBloodColor(record['bloodGroup']);
+  Widget _buildDonorRecordCard(BuildContext context, Map<String, dynamic> record) {
+    final bloodColor = _getBloodColor(record['bloodGroup'] as String?);
+
+    ImageProvider? avatarImage;
+    final imagePath = record['image'] as String?;
+    if (imagePath != null && imagePath.isNotEmpty) {
+      avatarImage = AssetImage(imagePath);
+    }
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -152,12 +161,8 @@ class DonorHistoryPage extends StatelessWidget {
             CircleAvatar(
               radius: 25,
               backgroundColor: Colors.grey.shade300,
-              backgroundImage: record['image'] != null
-                  ? AssetImage(record['image']!) as ImageProvider
-                  : null,
-              child: record['image'] == null
-                  ? Icon(Icons.person, color: Colors.grey.shade700)
-                  : null,
+              backgroundImage: avatarImage,
+              child: avatarImage == null ? Icon(Icons.person, color: Colors.grey.shade700) : null,
             ),
             const SizedBox(width: 12),
 
@@ -172,63 +177,48 @@ class DonorHistoryPage extends StatelessWidget {
                     runSpacing: 4,
                     children: [
                       Text(
-                        record['name'],
-                        style: const TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 16),
+                        record['name'] ?? '',
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                       ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: bloodColor,
-                          borderRadius: BorderRadius.circular(4),
+                      if ((record['bloodGroup'] ?? '').toString().isNotEmpty)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: bloodColor,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            record['bloodGroup'] ?? '',
+                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                          ),
                         ),
-                        child: Text(
-                          record['bloodGroup'],
-                          style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 12),
-                        ),
-                      ),
                       Text(
-                        "ID: ${record['id']}",
-                        style: const TextStyle(
-                            color: Colors.black54, fontSize: 12),
+                        "ID: ${record['id'] ?? ''}",
+                        style: const TextStyle(color: Colors.black54, fontSize: 12),
                       ),
                     ],
                   ),
                   const SizedBox(height: 8),
-
                   Row(
                     children: [
-                      const Icon(Icons.calendar_today,
-                          size: 14, color: Colors.black54),
+                      const Icon(Icons.calendar_today, size: 14, color: Colors.black54),
                       const SizedBox(width: 4),
-                      Text(record['date'],
-                          style: const TextStyle(
-                              color: Colors.black54, fontSize: 13)),
+                      Text(record['date'] ?? '', style: const TextStyle(color: Colors.black54, fontSize: 13)),
                       const SizedBox(width: 10),
-                      const Icon(Icons.schedule,
-                          size: 14, color: Colors.black54),
+                      const Icon(Icons.schedule, size: 14, color: Colors.black54),
                       const SizedBox(width: 4),
-                      Text(record['time'],
-                          style: const TextStyle(
-                              color: Colors.black54, fontSize: 13)),
+                      Text(record['time'] ?? '', style: const TextStyle(color: Colors.black54, fontSize: 13)),
                     ],
                   ),
                   const SizedBox(height: 4),
-
                   Row(
                     children: [
-                      const Icon(Icons.location_on,
-                          size: 14, color: Colors.black54),
+                      const Icon(Icons.location_on, size: 14, color: Colors.black54),
                       const SizedBox(width: 4),
                       Flexible(
                         child: Text(
-                          record['location'],
-                          style: const TextStyle(
-                              color: Colors.black54, fontSize: 13),
+                          record['location'] ?? '',
+                          style: const TextStyle(color: Colors.black54, fontSize: 13),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
@@ -242,9 +232,8 @@ class DonorHistoryPage extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(left: 8.0),
               child: Text(
-                record['volume'],
-                style: const TextStyle(
-                    fontWeight: FontWeight.bold, color: Colors.black87),
+                record['volume'] ?? '',
+                style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87),
               ),
             ),
           ],
@@ -255,7 +244,7 @@ class DonorHistoryPage extends StatelessWidget {
 }
 
 // --- Sample Data ---
-const List<Map<String, dynamic>> _donorRecords = [
+final List<Map<String, dynamic>> _donorRecords = [
   {
     'name': 'Sarah Johnson',
     'id': '#D001247',
